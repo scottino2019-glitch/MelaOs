@@ -39,7 +39,7 @@ export default function SiriAssistant({ isOpen, onClose, onTriggerApp, onNotific
     }
   }, [messages, isAnswering]);
 
-  const handleSendQuery = (textQuery: string) => {
+  const handleSendQuery = async (textQuery: string) => {
     if (!textQuery.trim()) return;
 
     // Add user query
@@ -48,43 +48,90 @@ export default function SiriAssistant({ isOpen, onClose, onTriggerApp, onNotific
     setQuery('');
     setIsAnswering(true);
 
-    // Simulate Siri thinking
-    setTimeout(() => {
+    // Collect iPad context for Siri
+    let notesCount = 0;
+    try {
+      const savedNotes = localStorage.getItem('ios_notes_v1');
+      if (savedNotes) {
+        notesCount = JSON.parse(savedNotes).length;
+      }
+    } catch (e) {}
+
+    let wallpaper = 'Predefinito';
+    try {
+      const savedSettings = localStorage.getItem('ios_settings_v1');
+      if (savedSettings) {
+        wallpaper = JSON.parse(savedSettings).wallpaper || 'Predefinito';
+      }
+    } catch (e) {}
+
+    let weatherData = { city: 'Roma', temp: 22, condition: 'Sereno' };
+    try {
+      const savedWeather = localStorage.getItem('scriba_current_weather_v1');
+      if (savedWeather) {
+        weatherData = JSON.parse(savedWeather);
+      }
+    } catch (e) {}
+
+    // Formulate previous history (omitting the first greeting message at index 0)
+    const historyPayload = messages.slice(1).map(m => ({
+      role: m.sender === 'user' ? 'user' : 'siri',
+      text: m.text
+    }));
+
+    const contextPayload = {
+      time: new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
+      date: new Date().toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+      notesCount,
+      wallpaper,
+      weather: weatherData
+    };
+
+    const runOfflineFallback = () => {
       const normalized = textQuery.toLowerCase();
+      const isActionQuery = normalized.includes('apri') || normalized.includes('avvia') || normalized.includes('mostra') || normalized.includes('vai a') || normalized.includes('lancia') || normalized.includes('aprimi') || normalized.includes('metti');
       let replyText = "Non sono sicura di aver capito la richiesta. Prova ad ordinarmi di aprire un'app (es. 'Apri Note' o 'Meteo') o chiedermi una barzelletta!";
       
-      if (normalized.includes('note') || normalized.includes('scriba') || normalized.includes('scrivi')) {
+      if (isActionQuery && (normalized.includes('note') || normalized.includes('scriba') || normalized.includes('scrivi'))) {
         replyText = "Certamente! Apro Scriba Note per te. Puoi ricominciare ad annotare i tuoi pensieri.";
         onTriggerApp('notes');
         onNotification("Siri", "Aperta Scriba Note");
       } 
-      else if (normalized.includes('foto') || normalized.includes('studio') || normalized.includes('pixels') || normalized.includes('galleria') || normalized.includes('immagine')) {
+      else if (isActionQuery && (normalized.includes('foto') || normalized.includes('studio') || normalized.includes('pixels') || normalized.includes('galleria') || normalized.includes('immagine'))) {
         replyText = "Subito! Apro Foto Studio così puoi ritoccare le tue foto o caricare nuovi scatti nella galleria.";
         onTriggerApp('pixels');
         onNotification("Siri", "Aperto Foto Studio");
       }
-      else if (normalized.includes('video') || normalized.includes('player') || normalized.includes('film')) {
+      else if (isActionQuery && (normalized.includes('video') || normalized.includes('player') || normalized.includes('film'))) {
         replyText = "Avvio subito l'applicazione Video Player. Buona visione!";
         onTriggerApp('video');
         onNotification("Siri", "Aperto Player Video");
       }
-      else if (normalized.includes('calcolatrice') || normalized.includes('calco')) {
+      else if (isActionQuery && (normalized.includes('calcolatrice') || normalized.includes('calco'))) {
         replyText = "Ecco la Calcolatrice pronta per fare i conti!";
         onTriggerApp('calculator');
         onNotification("Siri", "Aperta Calcolatrice");
       }
-      else if (normalized.includes('playground') || normalized.includes('swift') || normalized.includes('playgrounds')) {
+      else if (isActionQuery && (normalized.includes('playground') || normalized.includes('swift') || normalized.includes('playgrounds'))) {
         replyText = "Caricamento di Swift Playground completato! Pronti a scrivere del fantastico codice iOS.";
         onTriggerApp('playgrounds');
         onNotification("Siri", "Aperto Swift Playground");
       }
-      else if (normalized.includes('meteo') || normalized.includes('tempo') || normalized.includes('gradi') || normalized.includes('pioggia') || normalized.includes('sole')) {
+      else if (isActionQuery && (normalized.includes('meteo') || normalized.includes('tempo') || normalized.includes('gradi') || normalized.includes('pioggia') || normalized.includes('sole') || normalized.includes('prevision'))) {
         replyText = "Controllo il meteo locale ed apro l'applicazione Meteo così vedrai le previsioni complete in tempo reale!";
-        // Delay opening weather slightly so they can read siri
         setTimeout(() => {
           onTriggerApp('meteo');
           onNotification("Siri", "Aperto Meteo");
-        }, 1200);
+        }, 1000);
+      }
+      else if (isActionQuery && (normalized.includes('cartella') || normalized.includes('immagini') || normalized.includes('gallery') || normalized.includes('cartella img'))) {
+        replyText = "Apro subito la tua Cartella Immagini.";
+        onTriggerApp('gallery');
+        onNotification("Siri", "Aperta Cartella Immagini");
+      }
+      else if (isActionQuery && (normalized.includes('impostazioni') || normalized.includes('settaggi') || normalized.includes('sfondo') || normalized.includes('dark') || normalized.includes('wallpaper'))) {
+        replyText = "Apro subito le Impostazioni per te.";
+        onTriggerApp('settings');
       }
       else if (normalized.includes('barzelletta') || normalized.includes('ridere') || normalized.includes('scherzo')) {
         const randomJoke = JOKES[Math.floor(Math.random() * JOKES.length)];
@@ -96,14 +143,103 @@ export default function SiriAssistant({ isOpen, onClose, onTriggerApp, onNotific
       else if (normalized.includes('grazie')) {
         replyText = "Prego! Resto sempre a tua disposizione per automatizzare i tuoi compiti.";
       }
-      else if (normalized.includes('impostazioni') || normalized.includes('settaggi') || normalized.includes('sfondo') || normalized.includes('dark')) {
-        replyText = "Apro la cartella delle Impostazioni di sistema.";
-        onTriggerApp('settings');
-      }
 
       setMessages(prev => [...prev, { sender: 'siri' as const, text: replyText, date: new Date() }]);
       setIsAnswering(false);
-    }, 1000);
+    };
+
+    try {
+      const response = await fetch("/api/siri/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: textQuery,
+          context: contextPayload,
+          chatHistory: historyPayload
+        })
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        if (data.error === "GEMINI_API_KEY_MISSING") {
+          const warningText = `Il servizio di intelligenza artificiale per Siri non è sincronizzato. 
+
+Configura la tua chiave segreta in alto a destra cliccando su **Settings > Secrets** ed inserendo la tua **GEMINI_API_KEY**! 
+
+Nel frattempo mi occuperò di gestire i comandi della tavoletta in modalità offline. Ad esempio scrivi: "Apri la calcolatrice" o "Raccontami una barzelletta"!`;
+          setMessages(prev => [...prev, { sender: 'siri' as const, text: warningText, date: new Date() }]);
+          setIsAnswering(false);
+          return;
+        }
+        runOfflineFallback();
+        return;
+      }
+
+      const data = await response.json();
+      const siriReply = data.text || "Siri non ha risposto. Riprova tra un istante.";
+
+      // Scan Siri's response for explicit modern Action Tags (e.g. [ACTION: calculator])
+      let cleanReplyText = siriReply;
+      let targetAppId: string | null = null;
+
+      const actionRegex = /\[ACTION:\s*(\w+)\]/i;
+      const actionMatch = siriReply.match(actionRegex);
+      if (actionMatch) {
+        targetAppId = actionMatch[1].toLowerCase();
+        cleanReplyText = siriReply.replace(actionRegex, '').trim();
+      }
+
+      if (targetAppId) {
+        const delay = 1000;
+        if (targetAppId === 'calculator') {
+          setTimeout(() => {
+            onTriggerApp('calculator');
+            onNotification("Siri", "Aperta Calcolatrice");
+          }, delay);
+        } else if (targetAppId === 'notes') {
+          setTimeout(() => {
+            onTriggerApp('notes');
+            onNotification("Siri", "Aperta Scriba Note");
+          }, delay);
+        } else if (targetAppId === 'pixels') {
+          setTimeout(() => {
+            onTriggerApp('pixels');
+            onNotification("Siri", "Aperto Foto Studio");
+          }, delay);
+        } else if (targetAppId === 'gallery') {
+          setTimeout(() => {
+            onTriggerApp('gallery');
+            onNotification("Siri", "Aperta Cartella Immagini");
+          }, delay);
+        } else if (targetAppId === 'video') {
+          setTimeout(() => {
+            onTriggerApp('video');
+            onNotification("Siri", "Aperto Player Video");
+          }, delay);
+        } else if (targetAppId === 'playgrounds') {
+          setTimeout(() => {
+            onTriggerApp('playgrounds');
+            onNotification("Siri", "Aperto Swift Playground");
+          }, delay);
+        } else if (targetAppId === 'meteo') {
+          setTimeout(() => {
+            onTriggerApp('meteo');
+            onNotification("Siri", "Aperto Meteo");
+          }, delay);
+        } else if (targetAppId === 'settings') {
+          setTimeout(() => {
+            onTriggerApp('settings');
+          }, delay);
+        }
+      }
+
+      setMessages(prev => [...prev, { sender: 'siri' as const, text: cleanReplyText, date: new Date() }]);
+      setIsAnswering(false);
+
+    } catch (err) {
+      console.error("Errore fetch Siri API:", err);
+      runOfflineFallback();
+    }
   };
 
   if (!isOpen) return null;
