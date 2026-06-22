@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Wifi, Signal, Battery, Sliders, Bell, Sparkles, AlertCircle, 
@@ -171,6 +171,39 @@ export default function App() {
     }
   }, [settings]);
 
+  // Volume Change Indicator (HUD) & Keyboard listeners (Alt + ArrowUp / Alt + ArrowDown)
+  const [showVolumeHud, setShowVolumeHud] = useState(false);
+  const lastVolume = useRef(settings.volume);
+
+  useEffect(() => {
+    if (settings.volume !== lastVolume.current) {
+      setShowVolumeHud(true);
+      lastVolume.current = settings.volume;
+      const t = setTimeout(() => {
+        setShowVolumeHud(false);
+      }, 1500);
+      return () => clearTimeout(t);
+    }
+  }, [settings.volume]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return; // Skip when user is active inside form fields / notes
+      }
+      if (e.key === 'ArrowUp' && e.altKey) {
+        e.preventDefault();
+        setSettings(prev => ({ ...prev, volume: Math.min(100, prev.volume + 5) }));
+      } else if (e.key === 'ArrowDown' && e.altKey) {
+        e.preventDefault();
+        setSettings(prev => ({ ...prev, volume: Math.max(0, prev.volume - 5) }));
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Handle battery drain simulation
   useEffect(() => {
     const interval = setInterval(() => {
@@ -324,20 +357,46 @@ export default function App() {
           <div className="absolute top-0 right-10 w-28 h-28 bg-amber-400/15 rounded-full blur-xl animate-pulse pointer-events-none z-50" />
         )}
 
-        {/* Physical hardware buttons mock on side (Desktop view visual fun) */}
-        <div className="hidden md:block absolute -left-3.5 top-36 w-1 h-14 bg-zinc-800 rounded-r-md border-r border-white/5 shadow-inner" />
-        <div className="hidden md:block absolute -left-3.5 top-56 w-1 h-12 bg-zinc-800 rounded-r-md border-r border-white/5 active:scale-95 cursor-pointer" 
+        {/* Physical hardware buttons mock on side with expanded interactive hover bounds */}
+        <div className="hidden md:block absolute -left-2 top-36 w-2 h-14 bg-zinc-800 rounded-l-md border-l border-white/10 shadow-md" />
+        
+        <div className="hidden md:block absolute -left-3 top-52 w-4 h-14 flex items-center justify-start group cursor-pointer z-50 select-none"
              onClick={() => handleUpdateSettings({ volume: Math.min(100, settings.volume + 10) })}
-             title="Volume +" 
-        />
-        <div className="hidden md:block absolute -left-3.5 top-72 w-1 h-12 bg-zinc-800 rounded-r-md border-r border-white/5 active:scale-95 cursor-pointer" 
+             title="Alza volume (Alt + freccia su)"
+        >
+          <div className="w-1.5 h-12 bg-zinc-800 group-hover:bg-zinc-700 rounded-l border-l border-white/15 shadow-md group-active:scale-x-75 origin-right transition-all duration-150" />
+        </div>
+        
+        <div className="hidden md:block absolute -left-3 top-68 w-4 h-14 flex items-center justify-start group cursor-pointer z-50 select-none"
              onClick={() => handleUpdateSettings({ volume: Math.max(0, settings.volume - 10) })}
-             title="Volume -"
-        />
-        <div className="hidden md:block absolute -right-3.5 top-44 w-1 h-18 bg-zinc-800 rounded-l-md border-l border-white/5 active:scale-95 cursor-pointer"
+             title="Abbassa volume (Alt + freccia giù)"
+        >
+          <div className="w-1.5 h-12 bg-zinc-800 group-hover:bg-zinc-700 rounded-l border-l border-white/15 shadow-md group-active:scale-x-75 origin-right transition-all duration-150" />
+        </div>
+
+        <div className="hidden md:block absolute -right-3 top-44 w-4 h-18 flex items-center justify-end group cursor-pointer z-50 select-none"
              onClick={() => setAppState(prev => ({ ...prev, isLocked: !prev.isLocked }))}
-             title="Sblocca / Blocca schermo"
-        />
+             title="Tasto di accensione / Sblocca"
+        >
+          <div className="w-1.5 h-16 bg-zinc-800 group-hover:bg-zinc-700 rounded-r border-r border-white/15 shadow-md group-active:scale-x-75 origin-left transition-all duration-150" />
+        </div>
+
+        {/* Elegant iPadOS-style Screen Volume HUD capsule */}
+        <AnimatePresence>
+          {showVolumeHud && (
+            <motion.div
+              initial={{ opacity: 0, x: -12, scaleY: 0.9 }}
+              animate={{ opacity: 1, x: 0, scaleY: 1 }}
+              exit={{ opacity: 0, x: -12, transition: { duration: 0.25 } }}
+              className="absolute left-3.5 top-56 w-3 h-28 bg-black/80 backdrop-blur-md rounded-full overflow-hidden flex flex-col justify-end border border-white/20 z-50 shadow-2xl"
+            >
+              <div 
+                className="bg-white/95 rounded-full transition-all duration-100"
+                style={{ height: `${settings.volume || 1}%` }}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* iOS Native Global Status Bar */}
         <StatusBar 
@@ -521,6 +580,7 @@ export default function App() {
                   setIsSiriOpen(false);
                 }}
                 onNotification={(title, text) => handleTriggerNotify("Siri", title, text)}
+                systemVolume={settings.volume}
               />
             )}
           </AnimatePresence>
@@ -537,7 +597,7 @@ export default function App() {
         </p>
         <p className="flex items-center space-x-1.5">
           <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Utilizza i tasti laterali di sblocco a destra e volume del telefono a sinistra per testare l'hardware!</span>
+          <span>Usa i tasti fisici sul bordo (volume a sinistra, blocco a destra) o la scorciatoia tastiera <strong>Alt + ↑ / ↓</strong> per regolare l'audio!</span>
         </p>
       </div>
 

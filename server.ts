@@ -73,14 +73,46 @@ async function startServer() {
         ? chatHistory.map((h: any) => `${h.role === 'user' ? 'Utente' : 'Siri'}: ${h.text}`).join('\n') + `\nUtente: ${message}\nSiri:`
         : message;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: formattedHistory,
-        config: {
-          systemInstruction: systemInstruction,
-          temperature: 0.8,
+      // Call Gemini API with robust automatic retry for transient errors (like 503/429/temp-demand spikes)
+      let response;
+      let lastErr: any = null;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          response = await ai.models.generateContent({
+            model: "gemini-3.5-flash",
+            contents: formattedHistory,
+            config: {
+              systemInstruction: systemInstruction,
+              temperature: 0.8,
+            }
+          });
+          lastErr = null;
+          break; // Success, break the retry loop!
+        } catch (err: any) {
+          lastErr = err;
+          console.warn(`[Siri API] Attempt ${attempt} failed.`, err);
+          const errStr = String(err?.message || err?.status || err || "").toUpperCase();
+          const isTransient = errStr.includes("503") || 
+                              errStr.includes("UNAVAILABLE") || 
+                              errStr.includes("429") || 
+                              errStr.includes("RESOURCE_EXHAUSTED") || 
+                              errStr.includes("DEMAND") || 
+                              errStr.includes("TEMPORARY") || 
+                              errStr.includes("SPIKES");
+          
+          if (attempt < 3 && isTransient) {
+            const delayMs = attempt * 800;
+            console.log(`[Siri API] Transient error detected. Retrying in ${delayMs}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+          } else {
+            break; // Non-recoverable or last attempt exhausted
+          }
         }
-      });
+      }
+
+      if (lastErr) {
+        throw lastErr;
+      }
 
       const responseText = response.text || "Siri non ha risposto. Riprova tra un istante.";
       res.json({ text: responseText });
