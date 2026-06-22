@@ -412,6 +412,8 @@ export default function App() {
                           <AppVideoPlayer 
                             onNotification={(title, text) => handleTriggerNotify("Player Video", title, text)}
                             onMediaStateChange={handleMediaStateChange}
+                            systemVolume={settings.volume}
+                            onSystemVolumeChange={(vol) => handleUpdateSettings({ volume: vol })}
                           />
                         )}
                         {id === 'calculator' && (

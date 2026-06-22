@@ -9,6 +9,8 @@ interface AppVideoPlayerProps {
   onNotification: (title: string, msg: string) => void;
   // Let the parent App have hooks for the media control widget
   onMediaStateChange?: (title: string, isPlaying: boolean, onTogglePlay: () => void) => void;
+  systemVolume?: number;
+  onSystemVolumeChange?: (vol: number) => void;
 }
 
 const DEFAULT_PLAYLIST: VideoItem[] = [
@@ -48,7 +50,7 @@ interface BookmarkNote {
   noteText: string;
 }
 
-export default function AppVideoPlayer({ onNotification, onMediaStateChange }: AppVideoPlayerProps) {
+export default function AppVideoPlayer({ onNotification, onMediaStateChange, systemVolume, onSystemVolumeChange }: AppVideoPlayerProps) {
   const [playlist, setPlaylist] = useState<VideoItem[]>(DEFAULT_PLAYLIST);
   const [activeVideoId, setActiveVideoId] = useState<string>(DEFAULT_PLAYLIST[0].id);
   const activeVideo = playlist.find(v => v.id === activeVideoId) || playlist[0];
@@ -86,6 +88,20 @@ export default function AppVideoPlayer({ onNotification, onMediaStateChange }: A
     setCurrentTime(0);
     setNewBookmarkText('');
   }, [activeVideoId]);
+
+  // Synchronize system volume settings (slider & sidebar frame buttons) to video element
+  useEffect(() => {
+    if (systemVolume !== undefined) {
+      const volFraction = systemVolume / 100;
+      const video = videoRef.current;
+      if (video) {
+        video.volume = volFraction;
+        video.muted = volFraction === 0;
+      }
+      setVolume(volFraction);
+      setIsMuted(volFraction === 0);
+    }
+  }, [systemVolume, activeVideoId]);
 
   // Sync state up to App so widget reflects correct status
   useEffect(() => {
@@ -151,6 +167,9 @@ export default function AppVideoPlayer({ onNotification, onMediaStateChange }: A
     video.volume = val;
     setVolume(val);
     setIsMuted(val === 0);
+    if (onSystemVolumeChange) {
+      onSystemVolumeChange(Math.round(val * 100));
+    }
   };
 
   const toggleMute = () => {
@@ -159,6 +178,9 @@ export default function AppVideoPlayer({ onNotification, onMediaStateChange }: A
     const nextMute = !isMuted;
     video.muted = nextMute;
     setIsMuted(nextMute);
+    if (onSystemVolumeChange) {
+      onSystemVolumeChange(nextMute ? 0 : 50);
+    }
   };
 
   // Skip buttons
