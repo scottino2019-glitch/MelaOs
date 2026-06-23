@@ -483,10 +483,14 @@ export default function App() {
                           <AppCalculator />
                         )}
                         {id === 'pages_suite' && (
-                          <AppPages />
+                          <AppPages 
+                            onNotification={(title, text) => handleTriggerNotify("Pages", title, text)}
+                          />
                         )}
                         {id === 'books' && (
-                          <AppBooks />
+                          <AppBooks 
+                            onNotification={(title, text) => handleTriggerNotify("Libri", title, text)}
+                          />
                         )}
                         {id === 'playgrounds' && (
                           <AppSwiftPlaygrounds 
@@ -591,6 +595,7 @@ export default function App() {
                 }}
                 onNotification={(title, text) => handleTriggerNotify("Siri", title, text)}
                 systemVolume={settings.volume}
+                onSaveNote={handleSaveNote}
               />
             )}
           </AnimatePresence>

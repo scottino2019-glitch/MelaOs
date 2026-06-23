@@ -41,7 +41,12 @@ interface Document {
   templateName?: string;
 }
 
-export default function AppleTextEditor({ isEmbedded = false }: { isEmbedded?: boolean }) {
+interface AppleTextEditorProps {
+  isEmbedded?: boolean;
+  onNotification?: (title: string, message: string) => void;
+}
+
+export default function AppleTextEditor({ isEmbedded = false, onNotification }: AppleTextEditorProps) {
   const [documents, setDocuments] = useState<Document[]>(() => {
     const saved = localStorage.getItem('apple_text_editor_docs_rich_v2');
     if (saved) {
@@ -128,6 +133,9 @@ export default function AppleTextEditor({ isEmbedded = false }: { isEmbedded?: b
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
+    if (onNotification) {
+      onNotification("Pages", msg);
+    }
     setTimeout(() => {
       setToastMessage(null);
     }, 2800);
@@ -211,7 +219,7 @@ export default function AppleTextEditor({ isEmbedded = false }: { isEmbedded?: b
           <p style="text-align: right; color: #777; font-size: 11px;">[Data Offline]</p>
           <h2 style="font-size: 16px; font-weight: bold; color: #111;">OGGETTO: Lettera d'Intenti Formale</h2>
           <hr style="border: 0; border-top: 1px solid #ddd; margin: 12px 0;">
-          <p style="font-size: 12px; leading-height: 1.6;">Gentile Direttore,<br><br>Scrivo questa nota per riassumere i risultati degli accordi presi durante la nostra passata discussione sulle applicazioni Apple Pages.</p>
+          <p style="font-size: 12px; line-height: 1.6;">Gentile Direttore,<br><br>Scrivo questa nota per riassumere i risultati degli accordi presi durante la nostra passata discussione sulle applicazioni Apple Pages.</p>
         </div>
       `;
     } else if (templateType === 'ricetta') {
@@ -342,7 +350,7 @@ export default function AppleTextEditor({ isEmbedded = false }: { isEmbedded?: b
     >
       {/* Toast Alert overlay notifications */}
       {toastMessage && (
-        <div id="editor-popup-toast" className="absolute top-16 left-1/2 -translate-x-1/2 bg-neutral-900/95 backdrop-blur text-white font-bold text-[11px] px-4 py-2.5 rounded-full shadow-lg z-50 flex items-center gap-2 border border-white/10 animate-fade-in-down">
+        <div id="editor-popup-toast" className="absolute top-16 left-1/2 -translate-x-1/2 bg-neutral-900/95 backdrop-blur text-white font-bold text-[11px] px-4 py-2.5 rounded-full shadow-lg z-50 flex items-center gap-2 border border-white/10">
           <Sparkles className="text-amber-400 animate-pulse" size={13} />
           <span>{toastMessage}</span>
         </div>
@@ -409,8 +417,8 @@ export default function AppleTextEditor({ isEmbedded = false }: { isEmbedded?: b
         
         {/* Template Picker Overlay Sheet */}
         {showTemplatePicker && (
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-xs z-40 p-4 flex flex-col justify-end animate-fade-in">
-            <div className="bg-white rounded-t-3xl p-4 shadow-2xl max-h-[85%] overflow-y-auto animate-slide-up text-stone-800">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-xs z-40 p-4 flex flex-col justify-end">
+            <div className="bg-white rounded-t-3xl p-4 shadow-2xl max-h-[85%] overflow-y-auto text-stone-800">
               <div className="flex justify-between items-center border-b border-stone-100 pb-3 mb-3">
                 <span className="font-extrabold text-xs tracking-wider uppercase text-amber-600 block">Scegli Modello Pages</span>
                 <button 
@@ -467,7 +475,7 @@ export default function AppleTextEditor({ isEmbedded = false }: { isEmbedded?: b
         {sidebarOpen && (
           <div 
             id="editor-sidebar-docs"
-            className="absolute inset-y-0 left-0 w-64 border-r border-stone-200 bg-white/95 backdrop-blur z-30 h-full overflow-hidden flex flex-col shadow-xl animate-slide-right text-stone-850"
+            className="absolute inset-y-0 left-0 w-64 border-r border-stone-200 bg-white/95 backdrop-blur z-30 h-full overflow-hidden flex flex-col shadow-xl text-stone-850"
           >
             {/* Header action inside drawer */}
             <div className="p-3 bg-stone-50 flex items-center justify-between border-b border-stone-200/50">
@@ -526,7 +534,7 @@ export default function AppleTextEditor({ isEmbedded = false }: { isEmbedded?: b
                     handleDeleteActiveDoc();
                     setSidebarOpen(false);
                   }}
-                  className="w-full flex items-center justify-center gap-1.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-[10px] font-bold rounded-lg border border-red-200 transition-all focus:outline-none"
+                  className="w-full flex items-center justify-center gap-1.5 bg-red-550 hover:bg-red-600 text-white text-[10px] font-bold rounded-lg border border-red-500 transition-all focus:outline-none"
                 >
                   <Trash2 size={12} />
                   <span>Elimina Documento</span>
@@ -552,7 +560,7 @@ export default function AppleTextEditor({ isEmbedded = false }: { isEmbedded?: b
                 <button
                   id="btn-style-bold"
                   onClick={() => formatText('bold')}
-                  className="p-1 px-2 hover:bg-white rounded font-bold text-[11px] hover:text-neutral-950 text-neutral-600 shadow-xs"
+                  className="p-1 px-2 hover:bg-white rounded font-bold text-[11px] hover:text-neutral-950 text-neutral-600 shadow-xs animate-none"
                   title="Grassetto"
                 >
                   B
@@ -560,7 +568,7 @@ export default function AppleTextEditor({ isEmbedded = false }: { isEmbedded?: b
                 <button
                   id="btn-style-italic"
                   onClick={() => formatText('italic')}
-                  className="p-1 px-2 hover:bg-white rounded italic text-[11px] hover:text-neutral-950 text-neutral-600 shadow-xs"
+                  className="p-1 px-2 hover:bg-white rounded italic text-[11px] hover:text-neutral-950 text-neutral-600 shadow-xs animate-none"
                   title="Corsivo"
                 >
                   I
@@ -568,7 +576,7 @@ export default function AppleTextEditor({ isEmbedded = false }: { isEmbedded?: b
                 <button
                   id="btn-style-underline"
                   onClick={() => formatText('underline')}
-                  className="p-1 px-2 hover:bg-white rounded underline text-[11px] hover:text-neutral-950 text-neutral-600 shadow-xs"
+                  className="p-1 px-2 hover:bg-white rounded underline text-[11px] hover:text-neutral-950 text-neutral-600 shadow-xs animate-none"
                   title="Sottolineato"
                 >
                   U
@@ -576,7 +584,7 @@ export default function AppleTextEditor({ isEmbedded = false }: { isEmbedded?: b
                 <button
                   id="btn-style-strikethrough"
                   onClick={() => formatText('strikeThrough')}
-                  className="p-1 px-1.5 hover:bg-white rounded line-through text-[9px] hover:text-neutral-950 text-neutral-600 shadow-xs"
+                  className="p-1 px-1.5 hover:bg-white rounded line-through text-[9px] hover:text-neutral-950 text-neutral-600 shadow-xs animate-none"
                   title="Sbarrato"
                 >
                   S
@@ -692,7 +700,7 @@ export default function AppleTextEditor({ isEmbedded = false }: { isEmbedded?: b
                 id="btn-trigger-find-replace"
                 onClick={() => setShowFindReplace(!showFindReplace)}
                 className={`p-1.5 rounded-lg transition-all focus:outline-none shrink-0 ${
-                  showFindReplace ? 'bg-amber-55 text-amber-600' : 'text-neutral-500 hover:bg-stone-100'
+                  showFindReplace ? 'bg-amber-50 text-amber-600' : 'text-neutral-500 hover:bg-stone-100'
                 }`}
               >
                 <Search size={12} />
@@ -702,7 +710,7 @@ export default function AppleTextEditor({ isEmbedded = false }: { isEmbedded?: b
 
           {/* Quick inline search panel */}
           {showFindReplace && (
-            <div id="find-replace-panel" className="bg-white border-b border-stone-200 p-3.5 flex flex-col gap-2 animate-slide-down shrink-0 z-10 shadow-xs">
+            <div id="find-replace-panel" className="bg-white border-b border-stone-200 p-3.5 flex flex-col gap-2 shrink-0 z-10 shadow-xs">
               <div className="flex items-center gap-2">
                 <input
                   type="text"

@@ -59,12 +59,18 @@ async function startServer() {
         `- video (Player Video)\n` +
         `- playgrounds (Swift Playgrounds)\n` +
         `- meteo (Meteo)\n` +
+        `- books (Libri)\n` +
+        `- pages_suite (Pages)\n` +
         `- settings (Impostazioni o Sfondi)\n\n` +
+        `## FUNZIONE COMPOSIZIONE / SCRITTURA NOTE REALI\n` +
+        `Se l'utente ti ordina o ti chiede di scrivere, prendere, annotare o salvare una nota (es. "scrivi nota che dice di comprare lo zucchero", "salva una nota intitolata X", o "crea nota..."), devi estrarre un titolo breve (max 3-4 parole) e il contenuto completo desiderato, e aggiungere la dicitura speciale \`[ADD_NOTE: <titolo>|<contenuto>]\` alla fine della tua risposta. Assicurati inoltre di aggiungere \`[ACTION: notes]\` per aprire l'applicazione Scriba Note e mostrare all'utente l'azione effettuata!\n\n` +
         `Esempio di trigger:\n` +
         `Utente: "Apri la calcolatrice"\n` +
         `Siri: "Certamente, apro subito la Calcolatrice. [ACTION: calculator]"\n\n` +
+        `Utente: "Siri, scrivi una nota che dice di ricordarsi di annaffiare i fiori alle 18"\n` +
+        `Siri: "Certo! Ho creato una nuova nota reale intitolata 'Annaffiare i fiori'. Ti apro l'applicazione Scriba Note così potrai leggerla subito. [ADD_NOTE: Annaffiare i fiori|Ricordarsi di annaffiare i fiori alle 18] [ACTION: notes]"\n\n` +
         `Utente: "Raccontami una barzelletta"\n` +
-        `Siri: "Perché i programmatori preferiscono l'oscurità? Perché la luce attira sempre i bug!" (Nessun tag action qui!)\n\n` +
+        `Siri: "Perché i programmatori preferiscono l'oscurità? Perché la luce attira sempre i bug!" (Nessun tag action o add_note qui!)\n\n` +
         `Esempi di risposte iconiche:\n` +
         `- "Fammi ridere" o "raccontami una barzelletta": Rispondi narrando una barzelletta geniale o un indovinello spiritoso fatto su misura.`;
 

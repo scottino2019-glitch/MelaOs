@@ -35,7 +35,12 @@ interface BookItem {
   chapters: { title: string; content: string }[];
 }
 
-export default function AppleBooks({ isEmbedded = false }: { isEmbedded?: boolean }) {
+interface AppleBooksProps {
+  isEmbedded?: boolean;
+  onNotification?: (title: string, message: string) => void;
+}
+
+export default function AppleBooks({ isEmbedded = false, onNotification }: AppleBooksProps) {
   // Built-in iOS library loaded dynamically with full text contents & simulated PDF support
   const [books, setBooks] = useState<BookItem[]>(() => {
     const saved = localStorage.getItem('apple_books_suite_library');
@@ -101,6 +106,26 @@ export default function AppleBooks({ isEmbedded = false }: { isEmbedded?: boolea
   const [bookmarks, setBookmarks] = useState<string[]>([]); // chapter index as bookmarked
   const [showOptions, setShowOptions] = useState(false);
   
+  // Mobile optimized PDF state
+  const [isMobile, setIsMobile] = useState(false);
+  const [isForcingEmbed, setIsForcingEmbed] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+        window.innerWidth < 768
+      );
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  useEffect(() => {
+    setIsForcingEmbed(false);
+  }, [activeBookId]);
+
   // Custom public folder loader tool
   const [publicFileName, setPublicFileName] = useState('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -113,6 +138,9 @@ export default function AppleBooks({ isEmbedded = false }: { isEmbedded?: boolea
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
+    if (onNotification) {
+      onNotification("Libri", msg);
+    }
     setTimeout(() => {
       setToastMessage(null);
     }, 2800);
@@ -201,7 +229,7 @@ export default function AppleBooks({ isEmbedded = false }: { isEmbedded?: boolea
       progress: 0,
       category: isFilePdf ? 'PDF Public' : 'Testo Public',
       isPdf: isFilePdf,
-      pdfUrl: filename, // will target http://localhost:3000/filename.pdf static asset directly
+      pdfUrl: filename, // will target static asset directly
       chapters: isFilePdf ? [] : [
         {
           title: 'Introduzione',
@@ -233,7 +261,7 @@ export default function AppleBooks({ isEmbedded = false }: { isEmbedded?: boolea
     >
       {/* Toast Alert overlay notifications */}
       {toastMessage && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 bg-black/90 backdrop-blur text-white font-semibold text-[11px] px-3.5 py-2 rounded-full shadow-lg z-50 flex items-center gap-1.5 border border-white/10 animate-fade-in-down">
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 bg-black/90 backdrop-blur text-white font-semibold text-[11px] px-3.5 py-2 rounded-full shadow-lg z-50 flex items-center gap-1.5 border border-white/10">
           <Sparkles className="text-orange-400" size={12} />
           <span>{toastMessage}</span>
         </div>
@@ -292,7 +320,7 @@ export default function AppleBooks({ isEmbedded = false }: { isEmbedded?: boolea
                   placeholder="Es: libro.pdf"
                   value={publicFileName}
                   onChange={(e) => setPublicFileName(e.target.value)}
-                  className="flex-1 bg-neutral-100 dark:bg-neutral-900 border-none rounded-lg px-2.5 py-1.5 text-xs text-stone-850 dark:text-stone-200 focus:ring-1 focus:ring-orange-500/50"
+                  className="flex-1 bg-neutral-100 dark:bg-neutral-900 border-none rounded-lg px-2.5 py-1.5 text-xs text-stone-850 dark:text-stone-250 focus:ring-1 focus:ring-orange-500/50"
                 />
                 <button
                   type="submit"
@@ -340,7 +368,7 @@ export default function AppleBooks({ isEmbedded = false }: { isEmbedded?: boolea
                       <div className="flex items-center justify-between text-[9px] font-medium text-white/75">
                         <span className="truncate max-w-[80px]">{book.author}</span>
                         {book.isPdf && (
-                          <span className="bg-red-650/90 text-[8px] font-black px-1.5 py-0.5 rounded tracking-widest">PDF</span>
+                          <span className="bg-red-600/90 text-[8px] font-black px-1.5 py-0.5 rounded tracking-widest">PDF</span>
                         )}
                       </div>
                     </div>
@@ -415,7 +443,7 @@ export default function AppleBooks({ isEmbedded = false }: { isEmbedded?: boolea
 
           {/* Quick Style controls slider menu */}
           {showOptions && !activeBook.isPdf && (
-            <div className="absolute top-12 left-4 right-4 bg-white dark:bg-neutral-900 border border-stone-200/50 dark:border-neutral-800 p-4 rounded-2xl shadow-xl z-50 animate-slide-down text-xs space-y-4 text-stone-850 dark:text-stone-200">
+            <div className="absolute top-12 left-4 right-4 bg-white dark:bg-neutral-900 border border-stone-200/50 dark:border-neutral-800 p-4 rounded-2xl shadow-xl z-50 text-xs space-y-4 text-stone-850 dark:text-stone-200">
               
               {/* Font scaling control */}
               <div className="flex justify-between items-center bg-stone-100 dark:bg-neutral-800 px-3 py-2 rounded-xl">
@@ -467,19 +495,111 @@ export default function AppleBooks({ isEmbedded = false }: { isEmbedded?: boolea
           {/* Book Content rendering core zone (TXT or native embedded PDF) */}
           <div id="chapter-reader-canvas" className="flex-1 flex flex-col bg-stone-50 dark:bg-neutral-950 overflow-hidden">
             {activeBook.isPdf ? (
-              /* REAL PDF VIEWER OBJECT EMULATOR */
-              <div className="flex-1 w-full h-full bg-neutral-800 relative flex flex-col">
-                <iframe
-                  id="pdf-frame-visualizer"
-                  src={`${activeBook.pdfUrl}#toolbar=0&navpanes=0`}
-                  title={activeBook.title}
-                  className="w-full h-full border-none bg-neutral-900"
-                  type="application/pdf"
-                />
-                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/85 backdrop-blur text-[10px] text-white/90 px-3 py-1 rounded-full shadow-md text-center pointer-events-none">
-                  Trascina o scorri sul PDF per navigare
+              isMobile && !isForcingEmbed ? (
+                /* MOBILE OPTIMIZED PREVIEW/ACTION GATEWAY */
+                <div className="flex-1 w-full h-full bg-neutral-900 flex flex-col justify-between p-6">
+                  {/* Visual header feedback card */}
+                  <div className="bg-neutral-800/50 p-4 rounded-xl border border-neutral-700/30 text-center space-y-1 select-none">
+                    <span className="text-[10px] uppercase tracking-wider font-extrabold text-orange-400">
+                      Dispositivo Mobile Rilevato 📱
+                    </span>
+                    <h3 className="text-sm font-bold text-stone-100 leading-snug line-clamp-2">
+                      {activeBook.title}
+                    </h3>
+                    <p className="text-[11px] text-stone-400">
+                      Autore: {activeBook.author}
+                    </p>
+                  </div>
+
+                  {/* Elegant iOS-like book cover visual layout */}
+                  <div className="my-auto flex flex-col items-center py-4 space-y-4">
+                    <div 
+                      onClick={() => {
+                        window.open(activeBook.pdfUrl, '_blank');
+                        showToast('✓ Libro aperto nel lettore di sistema');
+                      }}
+                      className="relative group active:scale-95 transition-transform cursor-pointer"
+                    >
+                      <div className="absolute -inset-1.5 bg-gradient-to-r from-orange-500 to-amber-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-300"></div>
+                      <div className="relative w-36 h-48 bg-stone-900 rounded-xl shadow-2xl flex flex-col justify-between p-4 border border-stone-800 overflow-hidden text-left">
+                        {/* Book binder shadow accent */}
+                        <div className="w-1.5 h-full absolute left-0 top-0 bg-orange-700/30 border-r border-black/40"></div>
+                        <div className="pl-2 space-y-1">
+                          <p className="text-[9px] uppercase tracking-wider text-orange-400 font-extrabold select-none">PDF Reader</p>
+                          <h4 className="text-[11px] font-bold text-stone-200 uppercase tracking-tight line-clamp-3 select-none">
+                            {activeBook.title}
+                          </h4>
+                        </div>
+                        <div className="pl-2">
+                          <p className="text-[9px] text-stone-400 font-mono truncate select-none">
+                            {activeBook.author}
+                          </p>
+                          <div className="mt-2 bg-orange-500/10 text-orange-400 text-[8px] font-bold px-1.5 py-0.5 rounded w-max select-none">
+                            FORMATO PDF 📖
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5 text-center max-w-xs px-2 select-none">
+                      <h4 className="text-[11px] font-bold text-orange-400 uppercase tracking-wider">Lettura Fluida Nativa</h4>
+                      <p className="text-[11px] text-stone-400 leading-normal">
+                        Per evitare che il tuo smartphone scarichi il file ad ogni visualizzazione, tocca per aprirlo direttamente nel <b>visualizzatore fluido</b> del tuo sistema, supportando zoom e scorrimento manuale.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Operational primary button & force override options */}
+                  <div className="space-y-3">
+                    <button
+                      onClick={() => {
+                        window.open(activeBook.pdfUrl, '_blank');
+                        showToast('✓ Apertura libro in corso...');
+                      }}
+                      className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 active:scale-95 transition-all text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-orange-500/15 text-xs flex items-center justify-center gap-2"
+                    >
+                      <BookOpen className="w-4 h-4" />
+                      Visualizza Libro nel Lettore di Sistema
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        setIsForcingEmbed(true);
+                        showToast('Tentativo di caricare nel pannello...');
+                      }}
+                      className="w-full bg-transparent hover:bg-white/5 active:scale-98 transition text-stone-500 hover:text-stone-400 text-[10px] py-1.5 rounded-lg select-none border border-neutral-800"
+                    >
+                      Forza anteprima inline (potrebbe forzare il download su alcuni telefoni)
+                    </button>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                /* REAL PDF VIEWER OBJECT EMULATOR FOR DESKTOP OR OVERRIDDEN EMBED */
+                <div className="flex-1 w-full h-full bg-neutral-800 relative flex flex-col">
+                  {/* Optional banner to easily open externally anyway */}
+                  <div className="bg-neutral-900 border-b border-neutral-800 px-4 py-2 flex items-center justify-between text-xs text-stone-400">
+                    <span className="truncate">Anteprima interattiva: <b>{activeBook.title}</b></span>
+                    <button
+                      onClick={() => window.open(activeBook.pdfUrl, '_blank')}
+                      className="text-orange-400 hover:text-orange-350 active:scale-95 transition-transform font-bold flex items-center gap-1 shrink-0"
+                    >
+                      <FolderOpen className="w-3.5 h-3.5" />
+                      Apri separato
+                    </button>
+                  </div>
+
+                  <iframe
+                    id="pdf-frame-visualizer"
+                    src={`${activeBook.pdfUrl}#toolbar=0&navpanes=0`}
+                    title={activeBook.title}
+                    className="w-full h-full border-none bg-neutral-900 flex-1"
+                    type="application/pdf"
+                  />
+                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/85 backdrop-blur text-[10px] text-white/90 px-3 py-1 rounded-full shadow-md text-center pointer-events-none">
+                    Trascina o scorri sul PDF per navigare
+                  </div>
+                </div>
+              )
             ) : (
               /* TEXT CONTENT COMPANION RENDERING */
               <div className="flex-1 overflow-y-auto px-5 py-5">

@@ -8,6 +8,7 @@ interface SiriAssistantProps {
   onTriggerApp: (appId: string) => void;
   onNotification: (title: string, desc: string) => void;
   systemVolume?: number;
+  onSaveNote?: (note: any) => void;
 }
 
 const SIRI_SUGGESTIONS = [
@@ -26,7 +27,7 @@ const JOKES = [
   "Perché l'HTML ha litigato con il CSS? Perché diceva che era troppo superficiale e pensava solo allo stile! 💅"
 ];
 
-export default function SiriAssistant({ isOpen, onClose, onTriggerApp, onNotification, systemVolume }: SiriAssistantProps) {
+export default function SiriAssistant({ isOpen, onClose, onTriggerApp, onNotification, systemVolume, onSaveNote }: SiriAssistantProps) {
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<{ sender: 'user' | 'siri'; text: string; date: Date }[]>([
     { sender: 'siri', text: 'Ciao! Sono Siri. Come posso esserti utile oggi?', date: new Date() }
@@ -175,6 +176,46 @@ export default function SiriAssistant({ isOpen, onClose, onTriggerApp, onNotific
         replyText = mathResult;
       }
       // 2. Action commands (app triggers)
+      else if (isActionQuery && (normalized.includes('scrivi nota') || normalized.includes('crea nota') || normalized.includes('salva nota') || normalized.includes('aggiungi nota') || normalized.includes('scrivi una nota') || normalized.includes('nuova nota'))) {
+        let noteContent = textQuery;
+        const prefixesToStrip = [
+          /scrivi una nota di/i, /scrivi una nota che dice/i, /scrivi una nota col testo/i, /scrivi una nota/i,
+          /crea una nota di/i, /crea una nota che dice/i, /crea una nota col testo/i, /crea una nota/i,
+          /scrivi nota/i, /crea nota/i, /salva nota/i, /nuova nota/i, /aggiungi nota/i
+        ];
+        for (const regex of prefixesToStrip) {
+          noteContent = noteContent.replace(regex, '');
+        }
+        noteContent = noteContent.trim();
+        if (noteContent.startsWith(':') || noteContent.startsWith('-') || noteContent.startsWith('"') || noteContent.startsWith("'")) {
+          noteContent = noteContent.substring(1).trim();
+        }
+        if (noteContent.endsWith('"') || noteContent.endsWith("'")) {
+          noteContent = noteContent.substring(0, noteContent.length - 1).trim();
+        }
+
+        const titleText = noteContent.length > 25 ? noteContent.substring(0, 25).trim() + "..." : (noteContent || "Appunto vocale");
+        const finalContent = noteContent || "Creato offline con la voce tramite assistente vocale Siri.";
+
+        if (onSaveNote) {
+          const capitalizedTitle = titleText ? titleText[0].toUpperCase() + titleText.substring(1) : "Conversazione Siri";
+          const newNote = {
+            id: 'note_' + Date.now(),
+            title: capitalizedTitle,
+            content: finalContent,
+            date: new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
+            category: 'Idee' as const,
+            isFavorite: false
+          };
+          onSaveNote(newNote);
+          replyText = `Fatto! Ho appena registrato una nuova nota reale intitolata: "${capitalizedTitle}". Ho anche aperto l'applicazione Scriba Note. [ACTION: notes]`;
+          onTriggerApp('notes');
+          onNotification("Siri", "Nuova Nota salvata correttamente");
+        } else {
+          replyText = `Ho composto l'appunto "${titleText}" ma l'interfaccia non è sincronizzata per scrivere direttamente nei database della tavoletta. [ACTION: notes]`;
+          onTriggerApp('notes');
+        }
+      }
       else if (isActionQuery && (normalized.includes('note') || normalized.includes('scriba') || normalized.includes('scrivi') || normalized.includes('testo'))) {
         replyText = "Certamente! Apro Scriba Note per te. Puoi ricominciare ad annotare i tuoi pensieri. [ACTION: notes]";
         onTriggerApp('notes');
@@ -337,11 +378,30 @@ Nel frattempo mi occuperò di gestire i comandi della tavoletta in modalità off
       let cleanReplyText = siriReply;
       let targetAppId: string | null = null;
 
+      // 1. Scan for ADD_NOTE tag: [ADD_NOTE: Title|Content]
+      const noteRegex = /\[ADD_NOTE:\s*([^\|\]]+)\|([^\]]+)\]/i;
+      const noteMatch = siriReply.match(noteRegex);
+      if (noteMatch && onSaveNote) {
+        const title = noteMatch[1].trim();
+        const content = noteMatch[2].trim();
+        const newNote = {
+          id: 'note_' + Date.now(),
+          title: title[0].toUpperCase() + title.substring(1),
+          content: content,
+          date: new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
+          category: 'Idee' as const,
+          isFavorite: false
+        };
+        onSaveNote(newNote);
+        onNotification("Siri", `Nuova nota salvata: "${title}"`);
+        cleanReplyText = cleanReplyText.replace(noteRegex, '').trim();
+      }
+
       const actionRegex = /\[ACTION:\s*(\w+)\]/i;
-      const actionMatch = siriReply.match(actionRegex);
+      const actionMatch = cleanReplyText.match(actionRegex);
       if (actionMatch) {
         targetAppId = actionMatch[1].toLowerCase();
-        cleanReplyText = siriReply.replace(actionRegex, '').trim();
+        cleanReplyText = cleanReplyText.replace(actionRegex, '').trim();
       }
 
       if (targetAppId) {
@@ -380,6 +440,16 @@ Nel frattempo mi occuperò di gestire i comandi della tavoletta in modalità off
           setTimeout(() => {
             onTriggerApp('meteo');
             onNotification("Siri", "Aperto Meteo");
+          }, delay);
+        } else if (targetAppId === 'books') {
+          setTimeout(() => {
+            onTriggerApp('books');
+            onNotification("Siri", "Aperta l'applicazione Libri");
+          }, delay);
+        } else if (targetAppId === 'pages_suite' || targetAppId === 'pages') {
+          setTimeout(() => {
+            onTriggerApp('pages_suite');
+            onNotification("Siri", "Aperta Pages Suite");
           }, delay);
         } else if (targetAppId === 'settings') {
           setTimeout(() => {
