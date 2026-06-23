@@ -22,6 +22,8 @@ import AppSwiftPlaygrounds from './components/AppSwiftPlaygrounds';
 import AppMeteo from './components/AppMeteo';
 import SiriAssistant from './components/SiriAssistant';
 import AppCartellaImmagini from './components/AppCartellaImmagini';
+import AppPages from './components/AppPages';
+import AppBooks from './components/AppBooks';
 
 // Default notes seed data
 const DEFAULT_NOTES_SEED: Note[] = [
@@ -74,6 +76,8 @@ const DEFAULT_APPS: AppConfig[] = [
   { id: 'video', name: 'Player Video', icon: 'Play', isDockApp: true },
   { id: 'gallery', name: 'Cartella Img', icon: 'FolderOpen', isDockApp: false },
   { id: 'siri', name: 'Siri', icon: 'Mic', isDockApp: false },
+  { id: 'pages_suite', name: 'Pages', icon: 'Layers', isDockApp: false },
+  { id: 'books', name: 'Libri', icon: 'BookOpen', isDockApp: false },
   { id: 'calculator', name: 'Calcolatrice', icon: 'Calculator', isDockApp: false },
   { id: 'meteo', name: 'Meteo', icon: 'Sun', isDockApp: false },
   { id: 'playgrounds', name: 'Swift Playground', icon: 'Terminal', isDockApp: false },
@@ -477,6 +481,12 @@ export default function App() {
                         )}
                         {id === 'calculator' && (
                           <AppCalculator />
+                        )}
+                        {id === 'pages_suite' && (
+                          <AppPages />
+                        )}
+                        {id === 'books' && (
+                          <AppBooks />
                         )}
                         {id === 'playgrounds' && (
                           <AppSwiftPlaygrounds 

@@ -73,13 +73,17 @@ async function startServer() {
         ? chatHistory.map((h: any) => `${h.role === 'user' ? 'Utente' : 'Siri'}: ${h.text}`).join('\n') + `\nUtente: ${message}\nSiri:`
         : message;
 
-      // Call Gemini API with robust automatic retry for transient errors (like 503/429/temp-demand spikes)
+      // Call Gemini API with cascading model fallbacks and robust automatic retries
       let response;
       let lastErr: any = null;
-      for (let attempt = 1; attempt <= 3; attempt++) {
+      const modelsToTry = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+
+      for (let attempt = 1; attempt <= modelsToTry.length; attempt++) {
+        const selectedModel = modelsToTry[attempt - 1];
         try {
+          console.log(`[Siri API] Attempting generation with model: ${selectedModel} (Attempt ${attempt})`);
           response = await ai.models.generateContent({
-            model: "gemini-3.5-flash",
+            model: selectedModel,
             contents: formattedHistory,
             config: {
               systemInstruction: systemInstruction,
@@ -90,7 +94,7 @@ async function startServer() {
           break; // Success, break the retry loop!
         } catch (err: any) {
           lastErr = err;
-          console.warn(`[Siri API] Attempt ${attempt} failed.`, err);
+          console.warn(`[Siri API] Attempt with model ${selectedModel} failed.`, err);
           const errStr = String(err?.message || err?.status || err || "").toUpperCase();
           const isTransient = errStr.includes("503") || 
                               errStr.includes("UNAVAILABLE") || 
@@ -100,12 +104,13 @@ async function startServer() {
                               errStr.includes("TEMPORARY") || 
                               errStr.includes("SPIKES");
           
-          if (attempt < 3 && isTransient) {
-            const delayMs = attempt * 800;
-            console.log(`[Siri API] Transient error detected. Retrying in ${delayMs}ms...`);
+          if (attempt < modelsToTry.length && isTransient) {
+            const delayMs = attempt * 500;
+            console.log(`[Siri API] Transient error. Shifting to next model in ${delayMs}ms...`);
             await new Promise(resolve => setTimeout(resolve, delayMs));
           } else {
-            break; // Non-recoverable or last attempt exhausted
+            // If non-transient or last attempt, we let it terminate or log
+            console.error(`[Siri API] Exhausted or permanent error with model ${selectedModel}`);
           }
         }
       }

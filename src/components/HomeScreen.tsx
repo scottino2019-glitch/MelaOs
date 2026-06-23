@@ -20,7 +20,9 @@ const IconMap: Record<string, React.ComponentType<any>> = {
   Settings: LucideIcons.Settings,
   Sun: LucideIcons.Sun,
   FolderOpen: LucideIcons.FolderOpen,
-  Mic: LucideIcons.Mic
+  Mic: LucideIcons.Mic,
+  Layers: LucideIcons.Layers,
+  BookOpen: LucideIcons.BookOpen
 };
 
 export default function HomeScreen({ apps, settings, notesCount, onOpenApp }: HomeScreenProps) {
@@ -151,6 +153,8 @@ export default function HomeScreen({ apps, settings, notesCount, onOpenApp }: Ho
               app.id === 'siri' ? 'bg-gradient-to-br from-cyan-400 via-blue-500 to-fuchsia-500 text-white shadow-cyan-500/30' :
               app.id === 'playgrounds' ? 'bg-gradient-to-br from-orange-400 to-amber-600 text-white shadow-orange-500/25' :
               app.id === 'meteo' ? 'bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-600 text-white shadow-sky-505/30' :
+              app.id === 'pages_suite' ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-orange-500/30' :
+              app.id === 'books' ? 'bg-gradient-to-br from-[#ff5e62] to-[#ff9966] text-white shadow-[#ff5e62]/30' :
               app.id === 'settings' ? 'bg-gradient-to-br from-zinc-300 to-zinc-500 text-zinc-900 shadow-zinc-500/30' :
               'bg-gradient-to-br from-blue-500 to-indigo-600 text-white';
 

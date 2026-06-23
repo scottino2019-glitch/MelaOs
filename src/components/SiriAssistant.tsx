@@ -38,39 +38,47 @@ export default function SiriAssistant({ isOpen, onClose, onTriggerApp, onNotific
   // Stop speaking on unmount
   useEffect(() => {
     return () => {
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-      }
+      try {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
+      } catch (err) {}
     };
   }, []);
 
   // Stop speaking when user closes Siri assistant panel
   useEffect(() => {
     if (!isOpen) {
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-      }
+      try {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
+      } catch (err) {}
     }
   }, [isOpen]);
 
   const speakText = (text: string) => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      // Remove any Action Tag from TTS output to prevent Siri from spelling code blocks out loud
-      const cleanText = text.replace(/\[ACTION:\s*\w+\]/gi, '').trim();
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.lang = 'it-IT';
-      
-      const vol = systemVolume !== undefined ? systemVolume / 100 : 0.8;
-      utterance.volume = vol;
+    try {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        // Remove any Action Tag from TTS output to prevent Siri from spelling code blocks out loud
+        const cleanText = text.replace(/\[ACTION:\s*\w+\]/gi, '').trim();
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.lang = 'it-IT';
+        
+        const vol = systemVolume !== undefined ? systemVolume / 100 : 0.8;
+        utterance.volume = vol;
 
-      const voices = window.speechSynthesis.getVoices();
-      const italianVoice = voices.find(v => v.lang.startsWith('it'));
-      if (italianVoice) {
-        utterance.voice = italianVoice;
+        const voices = window.speechSynthesis.getVoices();
+        const italianVoice = voices.find(v => v.lang.startsWith('it'));
+        if (italianVoice) {
+          utterance.voice = italianVoice;
+        }
+        
+        window.speechSynthesis.speak(utterance);
       }
-      
-      window.speechSynthesis.speak(utterance);
+    } catch (err) {
+      console.warn("speechSynthesis was blocked or is not supported in this frame context.", err);
     }
   };
 
@@ -207,6 +215,16 @@ export default function SiriAssistant({ isOpen, onClose, onTriggerApp, onNotific
       else if (isActionQuery && (normalized.includes('impostazioni') || normalized.includes('settaggi') || normalized.includes('sfondo') || normalized.includes('dark') || normalized.includes('wallpaper'))) {
         replyText = "Apro subito le Impostazioni per te. [ACTION: settings]";
         onTriggerApp('settings');
+      }
+      else if (isActionQuery && (normalized.includes('libri') || normalized.includes('books') || normalized.includes('leggere') || normalized.includes('libro'))) {
+        replyText = "Certo! Apro l'applicazione Libri per te, buona lettura! [ACTION: books]";
+        onTriggerApp('books');
+        onNotification("Siri", "Aperta applicazione Libri");
+      }
+      else if (isActionQuery && (normalized.includes('pages') || normalized.includes('editor ricca') || normalized.includes('documenti') || normalized.includes('impaginare'))) {
+        replyText = "Avvio subito Pages Suite per i tuoi documenti ricchi! [ACTION: pages_suite]";
+        onTriggerApp('pages_suite');
+        onNotification("Siri", "Aperta l'applicazione Pages");
       }
       // 3. System context inquiries
       else if (normalized.includes('ora') || normalized.includes('ore sono') || normalized.includes('orario') || normalized.includes('orologio')) {

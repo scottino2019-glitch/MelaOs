@@ -142,7 +142,13 @@ export default function AppMeteo() {
       // Save for widget to read
       localStorage.setItem('scriba_weather_location_v1', JSON.stringify({ name: cityName, lat, lon, country: countryName }));
       localStorage.setItem('scriba_current_weather_v1', JSON.stringify({ temp: tempVal, condition: condDetails.label, code: codeVal, city: cityName }));
-      window.dispatchEvent(new Event('storage'));
+      // Safe event dispatching inside sandboxed frames
+      try {
+        window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(new CustomEvent('storage_custom_update'));
+      } catch (e) {
+        console.warn("Could not dispatch storage event in sandbox iframe:", e);
+      }
     } catch (err: any) {
       setErrorMsg("Errore nel caricamento del meteo. Caricamento dati offline dimostrativi.");
       fallbackStaticData(cityName, countryName || 'Italia');
