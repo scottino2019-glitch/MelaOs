@@ -26,6 +26,32 @@ async function startServer() {
     });
   }
 
+  // PDF Proxy to bypass CORS on remote PDFs and allow reliable canvas rendering
+  app.get("/api/proxy-pdf", async (req, res) => {
+    try {
+      const pdfUrl = req.query.url as string;
+      if (!pdfUrl) {
+        return res.status(400).send("Parameter 'url' is required");
+      }
+      
+      const response = await fetch(pdfUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch remote PDF: ${response.statusText}`);
+      }
+      
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      
+      const upstreamContentType = response.headers.get("content-type") || "application/pdf";
+      res.setHeader("Content-Type", upstreamContentType);
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.send(buffer);
+    } catch (error: any) {
+      console.error("PDF Proxy error:", error);
+      res.status(500).send(`Failed to proxy PDF: ${error.message}`);
+    }
+  });
+
   // Siri intelligent Chat assistant endpoint
   app.post("/api/siri/chat", async (req, res) => {
     try {

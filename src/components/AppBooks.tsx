@@ -20,7 +20,9 @@ import {
   FileText,
   Upload,
   Link2,
-  Trash2
+  Trash2,
+  ZoomIn,
+  ZoomOut
 } from 'lucide-react';
 
 interface BookItem {
@@ -33,6 +35,281 @@ interface BookItem {
   isPdf?: boolean;
   pdfUrl?: string;
   chapters: { title: string; content: string }[];
+}
+
+interface PdfCanvasViewerProps {
+  pdfUrl: string;
+  showToast: (msg: string) => void;
+}
+
+export function PdfCanvasViewer({ pdfUrl, showToast }: PdfCanvasViewerProps) {
+  const [pdf, setPdf] = useState<any>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [scale, setScale] = useState<number>(1.0);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
+  const renderTaskRef = React.useRef<any>(null);
+
+  // Load PDF.js script dynamically
+  useEffect(() => {
+    let active = true;
+
+    const loadPdfjs = async () => {
+      try {
+        setIsLoading(true);
+        setErrorMsg(null);
+
+        // Retrieve preloaded pdfjsLib from index.html scripts
+        let pdfjsLib = (window as any).pdfjsLib;
+        if (!pdfjsLib) {
+          // Poll for a couple of seconds if it's still being resolved on boot
+          for (let i = 0; i < 30; i++) {
+            await new Promise(r => setTimeout(r, 150));
+            pdfjsLib = (window as any).pdfjsLib;
+            if (pdfjsLib) break;
+          }
+        }
+
+        if (!pdfjsLib) {
+          throw new Error("Il visualizzatore PDF non è pronto. Ricarica la pagina o controlla la connessione.");
+        }
+
+        if (!active) return;
+
+        // Bypassing worker cross-origin instantiation limitation via a local Blob
+        if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+          try {
+            const workerRes = await fetch('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js');
+            const workerCode = await workerRes.text();
+            const blob = new Blob([workerCode], { type: 'application/javascript' });
+            pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(blob);
+          } catch (workerErr) {
+            console.warn("Blob worker initialization failed, using direct CDN fallback:", workerErr);
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+          }
+        }
+
+        // Decide URL: if data: or local, use as is; otherwise proxy to avoid CORS
+        let targetUrl = pdfUrl;
+        if (pdfUrl.startsWith('http') && !pdfUrl.includes(window.location.host)) {
+          targetUrl = `/api/proxy-pdf?url=${encodeURIComponent(pdfUrl)}`;
+        }
+
+        const loadingTask = pdfjsLib.getDocument({
+          url: targetUrl,
+          withCredentials: false
+        });
+
+        const loadedPdf = await loadingTask.promise;
+        if (!active) return;
+
+        setPdf(loadedPdf);
+        setTotalPages(loadedPdf.numPages);
+        setCurrentPage(1);
+        setIsLoading(false);
+      } catch (err: any) {
+        console.error("PDF.js load error:", err);
+        if (active) {
+          setErrorMsg(err.message || "Errore durante il caricamento del file PDF.");
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadPdfjs();
+
+    return () => {
+      active = false;
+    };
+  }, [pdfUrl]);
+
+  // Render the current page on scale or currentPage change
+  useEffect(() => {
+    if (!pdf) return;
+    let active = true;
+
+    const renderPage = async () => {
+      try {
+        const page = await pdf.getPage(currentPage);
+        if (!active) return;
+
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const context = canvas.getContext('2d');
+        if (!context) return;
+
+        // Cancel previous render task if still active to avoid overlapping
+        if (renderTaskRef.current) {
+          try {
+            renderTaskRef.current.cancel();
+          } catch (e) {
+            // ignore
+          }
+        }
+
+        const viewport = page.getViewport({ scale: scale * 1.5 }); // support retina/crisp scaling
+        
+        // Match CSS sizes
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        const renderContext = {
+          canvasContext: context,
+          viewport: viewport,
+        };
+
+        const renderTask = page.render(renderContext);
+        renderTaskRef.current = renderTask;
+
+        await renderTask.promise;
+      } catch (err: any) {
+        if (err.name !== 'RenderingCancelledException') {
+          console.error("Page render error:", err);
+        }
+      }
+    };
+
+    renderPage();
+
+    return () => {
+      active = false;
+    };
+  }, [pdf, currentPage, scale]);
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(prev => prev - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(prev => prev + 1);
+    }
+  };
+
+  const handleZoomIn = () => {
+    setScale(prev => Math.min(2.5, prev + 0.25));
+  };
+
+  const handleZoomOut = () => {
+    setScale(prev => Math.max(0.5, prev - 0.25));
+  };
+
+  return (
+    <div className="flex-1 flex flex-col bg-neutral-900 border border-neutral-800 text-stone-100 overflow-hidden relative">
+      {/* Top action toolbar within reader */}
+      <div className="bg-neutral-950 border-b border-neutral-800 px-4 py-2.5 flex flex-wrap items-center justify-between gap-2.5 shrink-0 text-xs">
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={handlePrevPage}
+            disabled={currentPage <= 1 || isLoading}
+            className="p-1.5 rounded bg-neutral-800 hover:bg-neutral-700 active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <span className="font-mono text-[11px] min-w-[70px] text-center text-stone-300">
+            Pagg. {currentPage} / {totalPages}
+          </span>
+          <button
+            onClick={handleNextPage}
+            disabled={currentPage >= totalPages || isLoading}
+            className="p-1.5 rounded bg-neutral-800 hover:bg-neutral-700 active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition"
+          >
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Zoom and dynamic interaction controls */}
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={handleZoomOut}
+            disabled={isLoading || scale <= 0.5}
+            className="p-1.5 rounded bg-neutral-800 hover:bg-neutral-700 active:scale-95 disabled:opacity-30 transition"
+            title="Zoom Indietro"
+          >
+            <ZoomOut className="w-4 h-4" />
+          </button>
+          <span className="font-mono text-[11px] text-stone-300 w-10 text-center select-none">
+            {Math.round(scale * 100)}%
+          </span>
+          <button
+            onClick={handleZoomIn}
+            disabled={isLoading || scale >= 2.5}
+            className="p-1.5 rounded bg-neutral-800 hover:bg-neutral-700 active:scale-95 disabled:opacity-30 transition"
+            title="Zoom Avanti"
+          >
+            <ZoomIn className="w-4 h-4" />
+          </button>
+
+          {/* Direct external raw link trigger just in case */}
+          <button
+            onClick={() => window.open(pdfUrl, '_blank')}
+            className="p-1.5 ml-2.5 rounded text-orange-400 hover:text-white hover:bg-orange-500/10 active:scale-95 transition"
+            title="Apri originale in nuova scheda"
+          >
+            <FolderOpen className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Main scrolling & touching viewing viewport */}
+      <div className="flex-1 overflow-auto flex items-start justify-center p-4 bg-neutral-900 scrollbar-thin">
+        {isLoading ? (
+          <div className="m-auto flex flex-col items-center gap-3 py-12">
+            <RefreshCw className="w-7 h-7 text-orange-500 animate-spin" />
+            <p className="text-[11px] text-stone-400 font-medium select-none anim-pulse">
+              Caricamento pagine e rendering vettoriale in corso...
+            </p>
+          </div>
+        ) : errorMsg ? (
+          <div className="m-auto text-center space-y-3 p-6 max-w-sm">
+            <div className="w-12 h-12 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center mx-auto">
+              ☠
+            </div>
+            <p className="text-xs text-red-400 font-semibold">{errorMsg}</p>
+            <button
+              onClick={() => window.open(pdfUrl, '_blank')}
+              className="px-3.5 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-stone-200 text-[11px] font-bold rounded-lg transition"
+            >
+              Apri sorgente originale
+            </button>
+          </div>
+        ) : (
+          <div className="relative border border-neutral-700 bg-white rounded-lg shadow-2xl overflow-hidden max-w-full">
+            <canvas 
+              ref={canvasRef} 
+              className="max-w-full h-auto block select-none bg-white"
+              style={{ minHeight: '100px' }}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Swipe support gesture zones for quick mobile swiping */}
+      {!isLoading && !errorMsg && (
+        <>
+          <div 
+            onClick={handlePrevPage}
+            className="absolute left-0 top-12 bottom-0 w-8 bg-transparent hover:bg-white/5 active:bg-orange-500/10 transition cursor-w-resize flex items-center justify-center text-white/10 hover:text-white/40"
+            title="Pagina precedente"
+          >
+            ‹
+          </div>
+          <div 
+            onClick={handleNextPage}
+            className="absolute right-0 top-12 bottom-0 w-8 bg-transparent hover:bg-white/5 active:bg-orange-500/10 transition cursor-e-resize flex items-center justify-center text-white/10 hover:text-white/40"
+            title="Pagina successiva"
+          >
+            ›
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
 
 interface AppleBooksProps {
@@ -495,111 +772,7 @@ export default function AppleBooks({ isEmbedded = false, onNotification }: Apple
           {/* Book Content rendering core zone (TXT or native embedded PDF) */}
           <div id="chapter-reader-canvas" className="flex-1 flex flex-col bg-stone-50 dark:bg-neutral-950 overflow-hidden">
             {activeBook.isPdf ? (
-              isMobile && !isForcingEmbed ? (
-                /* MOBILE OPTIMIZED PREVIEW/ACTION GATEWAY */
-                <div className="flex-1 w-full h-full bg-neutral-900 flex flex-col justify-between p-6">
-                  {/* Visual header feedback card */}
-                  <div className="bg-neutral-800/50 p-4 rounded-xl border border-neutral-700/30 text-center space-y-1 select-none">
-                    <span className="text-[10px] uppercase tracking-wider font-extrabold text-orange-400">
-                      Dispositivo Mobile Rilevato 📱
-                    </span>
-                    <h3 className="text-sm font-bold text-stone-100 leading-snug line-clamp-2">
-                      {activeBook.title}
-                    </h3>
-                    <p className="text-[11px] text-stone-400">
-                      Autore: {activeBook.author}
-                    </p>
-                  </div>
-
-                  {/* Elegant iOS-like book cover visual layout */}
-                  <div className="my-auto flex flex-col items-center py-4 space-y-4">
-                    <div 
-                      onClick={() => {
-                        window.open(activeBook.pdfUrl, '_blank');
-                        showToast('✓ Libro aperto nel lettore di sistema');
-                      }}
-                      className="relative group active:scale-95 transition-transform cursor-pointer"
-                    >
-                      <div className="absolute -inset-1.5 bg-gradient-to-r from-orange-500 to-amber-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-300"></div>
-                      <div className="relative w-36 h-48 bg-stone-900 rounded-xl shadow-2xl flex flex-col justify-between p-4 border border-stone-800 overflow-hidden text-left">
-                        {/* Book binder shadow accent */}
-                        <div className="w-1.5 h-full absolute left-0 top-0 bg-orange-700/30 border-r border-black/40"></div>
-                        <div className="pl-2 space-y-1">
-                          <p className="text-[9px] uppercase tracking-wider text-orange-400 font-extrabold select-none">PDF Reader</p>
-                          <h4 className="text-[11px] font-bold text-stone-200 uppercase tracking-tight line-clamp-3 select-none">
-                            {activeBook.title}
-                          </h4>
-                        </div>
-                        <div className="pl-2">
-                          <p className="text-[9px] text-stone-400 font-mono truncate select-none">
-                            {activeBook.author}
-                          </p>
-                          <div className="mt-2 bg-orange-500/10 text-orange-400 text-[8px] font-bold px-1.5 py-0.5 rounded w-max select-none">
-                            FORMATO PDF 📖
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5 text-center max-w-xs px-2 select-none">
-                      <h4 className="text-[11px] font-bold text-orange-400 uppercase tracking-wider">Lettura Fluida Nativa</h4>
-                      <p className="text-[11px] text-stone-400 leading-normal">
-                        Per evitare che il tuo smartphone scarichi il file ad ogni visualizzazione, tocca per aprirlo direttamente nel <b>visualizzatore fluido</b> del tuo sistema, supportando zoom e scorrimento manuale.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Operational primary button & force override options */}
-                  <div className="space-y-3">
-                    <button
-                      onClick={() => {
-                        window.open(activeBook.pdfUrl, '_blank');
-                        showToast('✓ Apertura libro in corso...');
-                      }}
-                      className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 active:scale-95 transition-all text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-orange-500/15 text-xs flex items-center justify-center gap-2"
-                    >
-                      <BookOpen className="w-4 h-4" />
-                      Visualizza Libro nel Lettore di Sistema
-                    </button>
-                    
-                    <button
-                      onClick={() => {
-                        setIsForcingEmbed(true);
-                        showToast('Tentativo di caricare nel pannello...');
-                      }}
-                      className="w-full bg-transparent hover:bg-white/5 active:scale-98 transition text-stone-500 hover:text-stone-400 text-[10px] py-1.5 rounded-lg select-none border border-neutral-800"
-                    >
-                      Forza anteprima inline (potrebbe forzare il download su alcuni telefoni)
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                /* REAL PDF VIEWER OBJECT EMULATOR FOR DESKTOP OR OVERRIDDEN EMBED */
-                <div className="flex-1 w-full h-full bg-neutral-800 relative flex flex-col">
-                  {/* Optional banner to easily open externally anyway */}
-                  <div className="bg-neutral-900 border-b border-neutral-800 px-4 py-2 flex items-center justify-between text-xs text-stone-400">
-                    <span className="truncate">Anteprima interattiva: <b>{activeBook.title}</b></span>
-                    <button
-                      onClick={() => window.open(activeBook.pdfUrl, '_blank')}
-                      className="text-orange-400 hover:text-orange-350 active:scale-95 transition-transform font-bold flex items-center gap-1 shrink-0"
-                    >
-                      <FolderOpen className="w-3.5 h-3.5" />
-                      Apri separato
-                    </button>
-                  </div>
-
-                  <iframe
-                    id="pdf-frame-visualizer"
-                    src={`${activeBook.pdfUrl}#toolbar=0&navpanes=0`}
-                    title={activeBook.title}
-                    className="w-full h-full border-none bg-neutral-900 flex-1"
-                    type="application/pdf"
-                  />
-                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/85 backdrop-blur text-[10px] text-white/90 px-3 py-1 rounded-full shadow-md text-center pointer-events-none">
-                    Trascina o scorri sul PDF per navigare
-                  </div>
-                </div>
-              )
+              <PdfCanvasViewer pdfUrl={activeBook.pdfUrl || ''} showToast={showToast} />
             ) : (
               /* TEXT CONTENT COMPANION RENDERING */
               <div className="flex-1 overflow-y-auto px-5 py-5">
