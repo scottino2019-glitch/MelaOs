@@ -41,12 +41,7 @@ interface Document {
   templateName?: string;
 }
 
-interface AppleTextEditorProps {
-  isEmbedded?: boolean;
-  onNotification?: (title: string, message: string) => void;
-}
-
-export default function AppleTextEditor({ isEmbedded = false, onNotification }: AppleTextEditorProps) {
+export default function AppleTextEditor({ isEmbedded = false }: { isEmbedded?: boolean }) {
   const [documents, setDocuments] = useState<Document[]>(() => {
     const saved = localStorage.getItem('apple_text_editor_docs_rich_v2');
     if (saved) {
@@ -133,9 +128,6 @@ export default function AppleTextEditor({ isEmbedded = false, onNotification }: 
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
-    if (onNotification) {
-      onNotification("Pages", msg);
-    }
     setTimeout(() => {
       setToastMessage(null);
     }, 2800);
@@ -183,13 +175,39 @@ export default function AppleTextEditor({ isEmbedded = false, onNotification }: 
     }, 0);
   };
 
+  const savedSelectionRef = useRef<Range | null>(null);
+
+  const saveSelection = () => {
+    if (typeof window !== 'undefined') {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        if (editorRef.current && editorRef.current.contains(range.commonAncestorContainer)) {
+          savedSelectionRef.current = range.cloneRange();
+        }
+      }
+    }
+  };
+
+  const restoreSelection = () => {
+    if (savedSelectionRef.current && typeof window !== 'undefined') {
+      const sel = window.getSelection();
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(savedSelectionRef.current);
+      }
+    }
+  };
+
   // Execute formatting command safely
   const formatText = (command: string, value: string = '') => {
+    restoreSelection();
     document.execCommand(command, false, value);
     handleContentInput();
     if (editorRef.current) {
       editorRef.current.focus();
     }
+    saveSelection();
   };
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -219,7 +237,7 @@ export default function AppleTextEditor({ isEmbedded = false, onNotification }: 
           <p style="text-align: right; color: #777; font-size: 11px;">[Data Offline]</p>
           <h2 style="font-size: 16px; font-weight: bold; color: #111;">OGGETTO: Lettera d'Intenti Formale</h2>
           <hr style="border: 0; border-top: 1px solid #ddd; margin: 12px 0;">
-          <p style="font-size: 12px; line-height: 1.6;">Gentile Direttore,<br><br>Scrivo questa nota per riassumere i risultati degli accordi presi durante la nostra passata discussione sulle applicazioni Apple Pages.</p>
+          <p style="font-size: 12px; leading-height: 1.6;">Gentile Direttore,<br><br>Scrivo questa nota per riassumere i risultati degli accordi presi durante la nostra passata discussione sulle applicazioni Apple Pages.</p>
         </div>
       `;
     } else if (templateType === 'ricetta') {
@@ -350,7 +368,7 @@ export default function AppleTextEditor({ isEmbedded = false, onNotification }: 
     >
       {/* Toast Alert overlay notifications */}
       {toastMessage && (
-        <div id="editor-popup-toast" className="absolute top-16 left-1/2 -translate-x-1/2 bg-neutral-900/95 backdrop-blur text-white font-bold text-[11px] px-4 py-2.5 rounded-full shadow-lg z-50 flex items-center gap-2 border border-white/10">
+        <div id="editor-popup-toast" className="absolute top-16 left-1/2 -translate-x-1/2 bg-neutral-900/95 backdrop-blur text-white font-bold text-[11px] px-4 py-2.5 rounded-full shadow-lg z-50 flex items-center gap-2 border border-white/10 animate-fade-in-down">
           <Sparkles className="text-amber-400 animate-pulse" size={13} />
           <span>{toastMessage}</span>
         </div>
@@ -417,8 +435,8 @@ export default function AppleTextEditor({ isEmbedded = false, onNotification }: 
         
         {/* Template Picker Overlay Sheet */}
         {showTemplatePicker && (
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-xs z-40 p-4 flex flex-col justify-end">
-            <div className="bg-white rounded-t-3xl p-4 shadow-2xl max-h-[85%] overflow-y-auto text-stone-800">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-xs z-40 p-4 flex flex-col justify-end animate-fade-in">
+            <div className="bg-white rounded-t-3xl p-4 shadow-2xl max-h-[85%] overflow-y-auto animate-slide-up text-stone-800">
               <div className="flex justify-between items-center border-b border-stone-100 pb-3 mb-3">
                 <span className="font-extrabold text-xs tracking-wider uppercase text-amber-600 block">Scegli Modello Pages</span>
                 <button 
@@ -475,7 +493,7 @@ export default function AppleTextEditor({ isEmbedded = false, onNotification }: 
         {sidebarOpen && (
           <div 
             id="editor-sidebar-docs"
-            className="absolute inset-y-0 left-0 w-64 border-r border-stone-200 bg-white/95 backdrop-blur z-30 h-full overflow-hidden flex flex-col shadow-xl text-stone-850"
+            className="absolute inset-y-0 left-0 w-64 border-r border-stone-200 bg-white/95 backdrop-blur z-30 h-full overflow-hidden flex flex-col shadow-xl animate-slide-right text-stone-850"
           >
             {/* Header action inside drawer */}
             <div className="p-3 bg-stone-50 flex items-center justify-between border-b border-stone-200/50">
@@ -534,7 +552,7 @@ export default function AppleTextEditor({ isEmbedded = false, onNotification }: 
                     handleDeleteActiveDoc();
                     setSidebarOpen(false);
                   }}
-                  className="w-full flex items-center justify-center gap-1.5 bg-red-550 hover:bg-red-600 text-white text-[10px] font-bold rounded-lg border border-red-500 transition-all focus:outline-none"
+                  className="w-full flex items-center justify-center gap-1.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-[10px] font-bold rounded-lg border border-red-200 transition-all focus:outline-none"
                 >
                   <Trash2 size={12} />
                   <span>Elimina Documento</span>
@@ -552,39 +570,43 @@ export default function AppleTextEditor({ isEmbedded = false, onNotification }: 
             id="editor-formatting-toolbar" 
             className="flex flex-col p-2 bg-white border-b border-stone-200 shrink-0 select-none space-y-1.5 shadow-xs z-10"
           >
-            {/* Row 1: Paragraph styles, Font weights and Search */}
+            {/* Row 1: Paragraph stlyes, Font weights and Search */}
             <div className="flex items-center justify-between gap-1 select-none overflow-x-auto scrollbar-none">
               
               {/* Bold Italic Underline Controls */}
               <div className="flex items-center gap-0.5 bg-stone-100 p-0.5 rounded-lg shrink-0">
                 <button
                   id="btn-style-bold"
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => formatText('bold')}
-                  className="p-1 px-2 hover:bg-white rounded font-bold text-[11px] hover:text-neutral-950 text-neutral-600 shadow-xs animate-none"
+                  className="p-1 px-2 hover:bg-white rounded font-bold text-[11px] hover:text-neutral-950 text-neutral-600 shadow-xs"
                   title="Grassetto"
                 >
                   B
                 </button>
                 <button
                   id="btn-style-italic"
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => formatText('italic')}
-                  className="p-1 px-2 hover:bg-white rounded italic text-[11px] hover:text-neutral-950 text-neutral-600 shadow-xs animate-none"
+                  className="p-1 px-2 hover:bg-white rounded italic text-[11px] hover:text-neutral-950 text-neutral-600 shadow-xs"
                   title="Corsivo"
                 >
                   I
                 </button>
                 <button
                   id="btn-style-underline"
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => formatText('underline')}
-                  className="p-1 px-2 hover:bg-white rounded underline text-[11px] hover:text-neutral-950 text-neutral-600 shadow-xs animate-none"
+                  className="p-1 px-2 hover:bg-white rounded underline text-[11px] hover:text-neutral-950 text-neutral-600 shadow-xs"
                   title="Sottolineato"
                 >
                   U
                 </button>
                 <button
                   id="btn-style-strikethrough"
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => formatText('strikeThrough')}
-                  className="p-1 px-1.5 hover:bg-white rounded line-through text-[9px] hover:text-neutral-950 text-neutral-600 shadow-xs animate-none"
+                  className="p-1 px-1.5 hover:bg-white rounded line-through text-[9px] hover:text-neutral-950 text-neutral-600 shadow-xs"
                   title="Sbarrato"
                 >
                   S
@@ -593,20 +615,38 @@ export default function AppleTextEditor({ isEmbedded = false, onNotification }: 
 
               {/* Advanced Block Formatter options */}
               <select
-                onChange={(e) => formatText('formatBlock', e.target.value)}
+                onFocus={saveSelection}
+                onChange={(e) => formatText('formatBlock', `<${e.target.value}>`)}
                 className="bg-stone-100 border-none text-[10px] text-neutral-700 rounded-lg px-1.5 py-1 font-semibold focus:outline-none shrink-0"
-                defaultValue="div"
+                defaultValue="p"
               >
-                <option value="div">Corpo Testo</option>
-                <option value="h1">Titolo Grande</option>
-                <option value="h2">Intestazione</option>
-                <option value="h3">Sotto-sezione</option>
-                <option value="blockquote">Citazione Mac</option>
+                <option value="p">Testo</option>
+                <option value="h1">Titolo 1</option>
+                <option value="h2">Titolo 2</option>
+                <option value="h3">Titolo 3</option>
+                <option value="blockquote">Citazione</option>
+              </select>
+
+              {/* Font Family Selector */}
+              <select
+                value={fontFamily}
+                onFocus={saveSelection}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setFontFamily(val as any);
+                  formatText('fontName', val === 'font-serif' ? 'Georgia, serif' : val === 'font-mono' ? 'Courier New, monospace' : 'Inter, sans-serif');
+                }}
+                className="bg-stone-100 border-none text-[10px] text-neutral-700 rounded-lg px-1.5 py-1 font-semibold focus:outline-none shrink-0"
+              >
+                <option value="font-sans">Inter</option>
+                <option value="font-serif">Georgia</option>
+                <option value="font-mono">Courier</option>
               </select>
 
               {/* Font Sizer */}
               <select
                 value={fontSize}
+                onFocus={saveSelection}
                 onChange={(e) => {
                   setFontSize(e.target.value);
                   formatText('fontSize', e.target.value);
@@ -629,6 +669,7 @@ export default function AppleTextEditor({ isEmbedded = false, onNotification }: 
               {/* Text Align buttons */}
               <div className="flex items-center gap-0.5 bg-stone-100 p-0.5 rounded-lg shrink-0">
                 <button 
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => formatText('justifyLeft')} 
                   className="p-1 text-stone-600 hover:text-stone-900 focus:outline-none"
                   title="Allinea a Sinistra"
@@ -636,6 +677,7 @@ export default function AppleTextEditor({ isEmbedded = false, onNotification }: 
                   <AlignLeft size={12} />
                 </button>
                 <button 
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => formatText('justifyCenter')} 
                   className="p-1 text-stone-600 hover:text-stone-900 focus:outline-none"
                   title="Allinea al Centro"
@@ -643,6 +685,7 @@ export default function AppleTextEditor({ isEmbedded = false, onNotification }: 
                   <AlignCenter size={12} />
                 </button>
                 <button 
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => formatText('justifyRight')} 
                   className="p-1 text-stone-600 hover:text-stone-900 focus:outline-none"
                   title="Allinea a Destra"
@@ -650,6 +693,7 @@ export default function AppleTextEditor({ isEmbedded = false, onNotification }: 
                   <AlignRight size={12} />
                 </button>
                 <button 
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => formatText('justifyFull')} 
                   className="p-1 text-stone-600 hover:text-stone-900 focus:outline-none"
                   title="Giustifica"
@@ -661,6 +705,7 @@ export default function AppleTextEditor({ isEmbedded = false, onNotification }: 
               {/* Bullet and checklist inserts */}
               <div className="flex items-center gap-1 bg-stone-100 p-0.5 rounded-lg shrink-0 text-[10px] font-bold text-neutral-600">
                 <button
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => formatText('insertUnorderedList')}
                   className="p-1 px-1.5 hover:bg-white rounded"
                   title="Lista Puntata"
@@ -668,6 +713,7 @@ export default function AppleTextEditor({ isEmbedded = false, onNotification }: 
                   • Elenco
                 </button>
                 <button
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => formatText('insertOrderedList')}
                   className="p-1 px-1.5 hover:bg-white rounded"
                   title="Lista Numerata"
@@ -681,6 +727,7 @@ export default function AppleTextEditor({ isEmbedded = false, onNotification }: 
                 <Palette size={11} className="text-neutral-400" />
                 <select
                   value={textColor}
+                  onFocus={saveSelection}
                   onChange={(e) => {
                     setTextColor(e.target.value);
                     formatText('foreColor', e.target.value);
@@ -710,7 +757,7 @@ export default function AppleTextEditor({ isEmbedded = false, onNotification }: 
 
           {/* Quick inline search panel */}
           {showFindReplace && (
-            <div id="find-replace-panel" className="bg-white border-b border-stone-200 p-3.5 flex flex-col gap-2 shrink-0 z-10 shadow-xs">
+            <div id="find-replace-panel" className="bg-white border-b border-stone-200 p-3.5 flex flex-col gap-2 animate-slide-down shrink-0 z-10 shadow-xs">
               <div className="flex items-center gap-2">
                 <input
                   type="text"
@@ -807,6 +854,9 @@ export default function AppleTextEditor({ isEmbedded = false, onNotification }: 
                 contentEditable={true}
                 onInput={handleContentInput}
                 onBlur={handleContentInput}
+                onKeyUp={saveSelection}
+                onMouseUp={saveSelection}
+                onSelect={saveSelection}
                 className={`flex-1 bg-transparent min-h-[340px] border-none focus:outline-none resize-none leading-relaxed text-xs ${fontFamily}`}
                 style={{ outline: 'none' }}
                 placeholder="Inizia a impaginare qui..."
