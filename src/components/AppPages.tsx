@@ -123,6 +123,45 @@ export default function AppleTextEditor({ isEmbedded = false }: { isEmbedded?: b
   const [paperTheme, setPaperTheme] = useState<'white' | 'sepia' | 'dark' | 'noble'>('white');
   const [fontFamily, setFontFamily] = useState<'font-serif' | 'font-sans' | 'font-mono'>('font-sans');
 
+  // Custom premium focus-safe dropdown states
+  const [blockFormat, setBlockFormat] = useState('p');
+  const [blockDropdownOpen, setBlockDropdownOpen] = useState(false);
+  const [fontDropdownOpen, setFontDropdownOpen] = useState(false);
+  const [sizeDropdownOpen, setSizeDropdownOpen] = useState(false);
+  const [colorDropdownOpen, setColorDropdownOpen] = useState(false);
+
+  const sizeNames: Record<string, string> = {
+    '1': 'Nano',
+    '2': 'Piccolo',
+    '3': 'Normale',
+    '4': 'Medio',
+    '5': 'Stile Lettera',
+    '6': 'Intestato',
+    '7': 'Enorme',
+  };
+
+  const fontNames: Record<string, string> = {
+    'font-sans': 'Inter',
+    'font-serif': 'Georgia',
+    'font-mono': 'Courier',
+  };
+
+  const blockNames: Record<string, string> = {
+    'p': 'Testo',
+    'h1': 'Titolo 1',
+    'h2': 'Titolo 2',
+    'h3': 'Titolo 3',
+    'blockquote': 'Citazione',
+  };
+
+  const colorNames: Record<string, string> = {
+    '#111111': 'Apple Graphite',
+    '#d97706': 'Amber Yellow',
+    '#dc2626': 'Red Velvet',
+    '#2563eb': 'Classic Ocean',
+    '#16a34a': 'Pine Green',
+  };
+
   const editorRef = useRef<HTMLDivElement>(null);
   const isEditingRef = useRef(false);
 
@@ -201,12 +240,42 @@ export default function AppleTextEditor({ isEmbedded = false }: { isEmbedded?: b
 
   // Execute formatting command safely
   const formatText = (command: string, value: string = '') => {
-    restoreSelection();
-    document.execCommand(command, false, value);
-    handleContentInput();
     if (editorRef.current) {
-      editorRef.current.focus();
+      const activeEl = document.activeElement;
+      const isFocused = activeEl === editorRef.current || editorRef.current.contains(activeEl);
+      
+      // Only restore selection if the editor is NOT currently focused,
+      // which preserves active browser selection and collapsed cursor formatting states.
+      if (!isFocused) {
+        editorRef.current.focus();
+        if (savedSelectionRef.current) {
+          restoreSelection();
+        }
+      }
     }
+    
+    // For formatBlock, try both standard h1/p and bracketed <h1>/<p> to be perfectly cross-browser compatible
+    if (command === 'formatBlock') {
+      const cleanValue = value.replace(/[<>]/g, ''); // e.g. 'h1'
+      const bracketValue = `<${cleanValue}>`;       // e.g. '<h1>'
+      try {
+        // Some browsers prefer bracketValue, others prefer cleanValue. We run cleanValue first, then bracketValue.
+        const success = document.execCommand(command, false, cleanValue);
+        if (!success) {
+          document.execCommand(command, false, bracketValue);
+        }
+      } catch (e) {
+        try {
+          document.execCommand(command, false, bracketValue);
+        } catch (err) {
+          console.error("formatBlock failed:", err);
+        }
+      }
+    } else {
+      document.execCommand(command, false, value);
+    }
+    
+    handleContentInput();
     saveSelection();
   };
 
@@ -571,14 +640,16 @@ export default function AppleTextEditor({ isEmbedded = false }: { isEmbedded?: b
             className="flex flex-col p-2 bg-white border-b border-stone-200 shrink-0 select-none space-y-1.5 shadow-xs z-10"
           >
             {/* Row 1: Paragraph stlyes, Font weights and Search */}
-            <div className="flex items-center justify-between gap-1 select-none overflow-x-auto scrollbar-none">
+            <div className="flex items-center justify-between gap-1 select-none overflow-visible">
               
               {/* Bold Italic Underline Controls */}
               <div className="flex items-center gap-0.5 bg-stone-100 p-0.5 rounded-lg shrink-0">
                 <button
                   id="btn-style-bold"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => formatText('bold')}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    formatText('bold');
+                  }}
                   className="p-1 px-2 hover:bg-white rounded font-bold text-[11px] hover:text-neutral-950 text-neutral-600 shadow-xs"
                   title="Grassetto"
                 >
@@ -586,8 +657,10 @@ export default function AppleTextEditor({ isEmbedded = false }: { isEmbedded?: b
                 </button>
                 <button
                   id="btn-style-italic"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => formatText('italic')}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    formatText('italic');
+                  }}
                   className="p-1 px-2 hover:bg-white rounded italic text-[11px] hover:text-neutral-950 text-neutral-600 shadow-xs"
                   title="Corsivo"
                 >
@@ -595,8 +668,10 @@ export default function AppleTextEditor({ isEmbedded = false }: { isEmbedded?: b
                 </button>
                 <button
                   id="btn-style-underline"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => formatText('underline')}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    formatText('underline');
+                  }}
                   className="p-1 px-2 hover:bg-white rounded underline text-[11px] hover:text-neutral-950 text-neutral-600 shadow-xs"
                   title="Sottolineato"
                 >
@@ -604,8 +679,10 @@ export default function AppleTextEditor({ isEmbedded = false }: { isEmbedded?: b
                 </button>
                 <button
                   id="btn-style-strikethrough"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => formatText('strikeThrough')}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    formatText('strikeThrough');
+                  }}
                   className="p-1 px-1.5 hover:bg-white rounded line-through text-[9px] hover:text-neutral-950 text-neutral-600 shadow-xs"
                   title="Sbarrato"
                 >
@@ -614,87 +691,166 @@ export default function AppleTextEditor({ isEmbedded = false }: { isEmbedded?: b
               </div>
 
               {/* Advanced Block Formatter options */}
-              <select
-                onFocus={saveSelection}
-                onChange={(e) => formatText('formatBlock', `<${e.target.value}>`)}
-                className="bg-stone-100 border-none text-[10px] text-neutral-700 rounded-lg px-1.5 py-1 font-semibold focus:outline-none shrink-0"
-                defaultValue="p"
-              >
-                <option value="p">Testo</option>
-                <option value="h1">Titolo 1</option>
-                <option value="h2">Titolo 2</option>
-                <option value="h3">Titolo 3</option>
-                <option value="blockquote">Citazione</option>
-              </select>
+              <div className="relative shrink-0">
+                <button
+                  id="btn-trigger-block-dropdown"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setBlockDropdownOpen(!blockDropdownOpen);
+                    setFontDropdownOpen(false);
+                    setSizeDropdownOpen(false);
+                    setColorDropdownOpen(false);
+                  }}
+                  className="bg-stone-100 hover:bg-stone-200 text-[10px] text-neutral-700 rounded-lg px-2 py-1 font-bold flex items-center gap-1 focus:outline-none shrink-0"
+                >
+                  <span>{blockNames[blockFormat] || 'Testo'}</span>
+                  <span className="text-[7px] text-neutral-400">▼</span>
+                </button>
+                {blockDropdownOpen && (
+                  <div
+                    onMouseDown={(e) => e.preventDefault()}
+                    className="absolute top-full left-0 mt-1 bg-white border border-stone-200 rounded-xl shadow-lg z-50 py-1 min-w-[110px]"
+                  >
+                    {Object.entries(blockNames).map(([value, name]) => (
+                      <button
+                        key={value}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setBlockFormat(value);
+                          formatText('formatBlock', `<${value}>`);
+                          setBlockDropdownOpen(false);
+                        }}
+                        className={`w-full text-left px-3 py-1.5 text-[10px] hover:bg-stone-100 text-stone-800 font-medium ${blockFormat === value ? 'bg-orange-50 text-orange-600' : ''}`}
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {/* Font Family Selector */}
-              <select
-                value={fontFamily}
-                onFocus={saveSelection}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setFontFamily(val as any);
-                  formatText('fontName', val === 'font-serif' ? 'Georgia, serif' : val === 'font-mono' ? 'Courier New, monospace' : 'Inter, sans-serif');
-                }}
-                className="bg-stone-100 border-none text-[10px] text-neutral-700 rounded-lg px-1.5 py-1 font-semibold focus:outline-none shrink-0"
-              >
-                <option value="font-sans">Inter</option>
-                <option value="font-serif">Georgia</option>
-                <option value="font-mono">Courier</option>
-              </select>
+              <div className="relative shrink-0">
+                <button
+                  id="btn-trigger-font-dropdown"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setFontDropdownOpen(!fontDropdownOpen);
+                    setBlockDropdownOpen(false);
+                    setSizeDropdownOpen(false);
+                    setColorDropdownOpen(false);
+                  }}
+                  className="bg-stone-100 hover:bg-stone-200 text-[10px] text-neutral-700 rounded-lg px-2 py-1 font-bold flex items-center gap-1 focus:outline-none shrink-0"
+                >
+                  <span>{fontNames[fontFamily] || 'Inter'}</span>
+                  <span className="text-[7px] text-neutral-400">▼</span>
+                </button>
+                {fontDropdownOpen && (
+                  <div
+                    onMouseDown={(e) => e.preventDefault()}
+                    className="absolute top-full left-0 mt-1 bg-white border border-stone-200 rounded-xl shadow-lg z-50 py-1 min-w-[100px]"
+                  >
+                    {Object.entries(fontNames).map(([value, name]) => (
+                      <button
+                        key={value}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setFontFamily(value as any);
+                          formatText('fontName', value === 'font-serif' ? 'Georgia, serif' : value === 'font-mono' ? 'Courier New, monospace' : 'Inter, sans-serif');
+                          setFontDropdownOpen(false);
+                        }}
+                        className={`w-full text-left px-3 py-1.5 text-[10px] hover:bg-stone-100 text-stone-800 font-medium ${fontFamily === value ? 'bg-orange-50 text-orange-600' : ''}`}
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {/* Font Sizer */}
-              <select
-                value={fontSize}
-                onFocus={saveSelection}
-                onChange={(e) => {
-                  setFontSize(e.target.value);
-                  formatText('fontSize', e.target.value);
-                }}
-                className="bg-stone-100 border-none text-[10px] text-neutral-700 rounded-lg px-1.5 py-1 font-semibold focus:outline-none shrink-0"
-              >
-                <option value="1">Nano</option>
-                <option value="2">Piccolo</option>
-                <option value="3">Normale</option>
-                <option value="4">Medio</option>
-                <option value="5">Stile Lettera</option>
-                <option value="6">Intestato</option>
-                <option value="7">Enorme</option>
-              </select>
+              <div className="relative shrink-0">
+                <button
+                  id="btn-trigger-size-dropdown"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setSizeDropdownOpen(!sizeDropdownOpen);
+                    setBlockDropdownOpen(false);
+                    setFontDropdownOpen(false);
+                    setColorDropdownOpen(false);
+                  }}
+                  className="bg-stone-100 hover:bg-stone-200 text-[10px] text-neutral-700 rounded-lg px-2 py-1 font-bold flex items-center gap-1 focus:outline-none shrink-0"
+                >
+                  <span>{sizeNames[fontSize] || 'Normale'}</span>
+                  <span className="text-[7px] text-neutral-400">▼</span>
+                </button>
+                {sizeDropdownOpen && (
+                  <div
+                    onMouseDown={(e) => e.preventDefault()}
+                    className="absolute top-full right-0 mt-1 bg-white border border-stone-200 rounded-xl shadow-lg z-50 py-1 min-w-[110px] max-h-[200px] overflow-y-auto"
+                  >
+                    {Object.entries(sizeNames).map(([value, name]) => (
+                      <button
+                        key={value}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setFontSize(value);
+                          formatText('fontSize', value);
+                          setSizeDropdownOpen(false);
+                        }}
+                        className={`w-full text-left px-3 py-1.5 text-[10px] hover:bg-stone-100 text-stone-800 font-medium ${fontSize === value ? 'bg-orange-50 text-orange-600' : ''}`}
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Row 2: Alignment, Color palette & Lists */}
-            <div className="flex items-center justify-between gap-1 select-none overflow-x-auto scrollbar-none pt-0.5">
+            <div className="flex items-center justify-between gap-1 select-none pt-0.5 overflow-visible">
               
               {/* Text Align buttons */}
               <div className="flex items-center gap-0.5 bg-stone-100 p-0.5 rounded-lg shrink-0">
                 <button 
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => formatText('justifyLeft')} 
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    formatText('justifyLeft');
+                  }}
                   className="p-1 text-stone-600 hover:text-stone-900 focus:outline-none"
                   title="Allinea a Sinistra"
                 >
                   <AlignLeft size={12} />
                 </button>
                 <button 
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => formatText('justifyCenter')} 
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    formatText('justifyCenter');
+                  }}
                   className="p-1 text-stone-600 hover:text-stone-900 focus:outline-none"
                   title="Allinea al Centro"
                 >
                   <AlignCenter size={12} />
                 </button>
                 <button 
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => formatText('justifyRight')} 
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    formatText('justifyRight');
+                  }}
                   className="p-1 text-stone-600 hover:text-stone-900 focus:outline-none"
                   title="Allinea a Destra"
                 >
                   <AlignRight size={12} />
                 </button>
                 <button 
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => formatText('justifyFull')} 
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    formatText('justifyFull');
+                  }}
                   className="p-1 text-stone-600 hover:text-stone-900 focus:outline-none"
                   title="Giustifica"
                 >
@@ -705,16 +861,20 @@ export default function AppleTextEditor({ isEmbedded = false }: { isEmbedded?: b
               {/* Bullet and checklist inserts */}
               <div className="flex items-center gap-1 bg-stone-100 p-0.5 rounded-lg shrink-0 text-[10px] font-bold text-neutral-600">
                 <button
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => formatText('insertUnorderedList')}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    formatText('insertUnorderedList');
+                  }}
                   className="p-1 px-1.5 hover:bg-white rounded"
                   title="Lista Puntata"
                 >
                   • Elenco
                 </button>
                 <button
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => formatText('insertOrderedList')}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    formatText('insertOrderedList');
+                  }}
                   className="p-1 px-1.5 hover:bg-white rounded"
                   title="Lista Numerata"
                 >
@@ -723,23 +883,46 @@ export default function AppleTextEditor({ isEmbedded = false }: { isEmbedded?: b
               </div>
 
               {/* iOS Note colors palette */}
-              <div className="flex items-center gap-1 shrink-0 bg-stone-100 p-1 rounded-lg">
-                <Palette size={11} className="text-neutral-400" />
-                <select
-                  value={textColor}
-                  onFocus={saveSelection}
-                  onChange={(e) => {
-                    setTextColor(e.target.value);
-                    formatText('foreColor', e.target.value);
+              <div className="relative shrink-0">
+                <button
+                  id="btn-trigger-color-dropdown"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setColorDropdownOpen(!colorDropdownOpen);
+                    setBlockDropdownOpen(false);
+                    setFontDropdownOpen(false);
+                    setSizeDropdownOpen(false);
                   }}
-                  className="bg-transparent border-none text-[8px] text-neutral-700 font-bold focus:outline-none"
+                  className="flex items-center gap-1 shrink-0 bg-stone-100 hover:bg-stone-200 p-1 px-2 rounded-lg text-[10px] text-neutral-700 font-bold focus:outline-none"
                 >
-                  <option value="#111111">Apple Graphite</option>
-                  <option value="#d97706">Amber Yellow</option>
-                  <option value="#dc2626">Red Velvet</option>
-                  <option value="#2563eb">Classic Ocean</option>
-                  <option value="#16a34a">Pine Green</option>
-                </select>
+                  <Palette size={11} className="text-neutral-400" />
+                  <span className="w-2.5 h-2.5 rounded-full border border-stone-300" style={{ backgroundColor: textColor }} />
+                  <span className="text-[8px] text-neutral-700 hidden xs:inline">{colorNames[textColor] || 'Colore'}</span>
+                  <span className="text-[7px] text-neutral-400">▼</span>
+                </button>
+                {colorDropdownOpen && (
+                  <div
+                    onMouseDown={(e) => e.preventDefault()}
+                    className="absolute top-full right-0 mt-1 bg-white border border-stone-200 rounded-xl shadow-lg z-50 py-1 min-w-[120px]"
+                  >
+                    {Object.entries(colorNames).map(([value, name]) => (
+                      <button
+                        key={value}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setTextColor(value);
+                          formatText('foreColor', value);
+                          setColorDropdownOpen(false);
+                        }}
+                        className={`w-full text-left px-3 py-1.5 text-[10px] hover:bg-stone-100 text-stone-800 font-medium flex items-center gap-2 ${textColor === value ? 'bg-orange-50 text-orange-600' : ''}`}
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full border border-stone-200" style={{ backgroundColor: value }} />
+                        <span>{name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Toggle Find panel */}
@@ -832,6 +1015,15 @@ export default function AppleTextEditor({ isEmbedded = false }: { isEmbedded?: b
           <div className={`flex-1 overflow-y-auto ${isEmbedded ? 'p-2' : 'p-4'} flex flex-col items-center`}>
             <div
               id="editor-paper-simulation"
+              onClick={(e) => {
+                if (editorRef.current && (e.target === e.currentTarget || (e.target as HTMLElement).id === 'editor-paper-simulation')) {
+                  editorRef.current.focus();
+                }
+                setBlockDropdownOpen(false);
+                setFontDropdownOpen(false);
+                setSizeDropdownOpen(false);
+                setColorDropdownOpen(false);
+              }}
               className={`w-full ${isEmbedded ? 'min-h-[250px]' : 'min-h-[380px]'} rounded-2xl ${isEmbedded ? 'p-3' : 'p-4 md:p-6'} shadow-md border transition-all duration-300 flex flex-col ${
                 paperTheme === 'white' 
                   ? 'bg-white text-neutral-800 border-stone-200/55' 
@@ -857,7 +1049,13 @@ export default function AppleTextEditor({ isEmbedded = false }: { isEmbedded?: b
                 onKeyUp={saveSelection}
                 onMouseUp={saveSelection}
                 onSelect={saveSelection}
-                className={`flex-1 bg-transparent min-h-[340px] border-none focus:outline-none resize-none leading-relaxed text-xs ${fontFamily}`}
+                onMouseDown={() => {
+                  setBlockDropdownOpen(false);
+                  setFontDropdownOpen(false);
+                  setSizeDropdownOpen(false);
+                  setColorDropdownOpen(false);
+                }}
+                className={`flex-1 bg-transparent min-h-[340px] border-none focus:outline-none resize-none leading-relaxed text-xs select-text ${fontFamily}`}
                 style={{ outline: 'none' }}
                 placeholder="Inizia a impaginare qui..."
               />
