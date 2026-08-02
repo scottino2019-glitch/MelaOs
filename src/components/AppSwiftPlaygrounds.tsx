@@ -279,6 +279,40 @@ export default function AppSwiftPlaygrounds({ onNotification }: AppSwiftPlaygrou
   // Main Tab Navigation: 'code' (Editor Codice Swift), 'preview' (Simulatore iPhone), 'puzzles' (Gioco Byte)
   const [mainTab, setMainTab] = useState<'code' | 'preview' | 'puzzles'>('code');
 
+// --- FUNZIONE DI VALIDAZIONE AVANZATA SWIFT ---
+const checkSwiftSyntax = (code: string): string[] => {
+  const warnings: string[] = [];
+  
+  // 1. Controllo parentesi graffe { e }
+  const openBraces = (code.match(/\{/g) || []).length;
+  const closeBraces = (code.match(/\}/g) || []).length;
+  if (openBraces > closeBraces) {
+    warnings.push(`⚠️ Mancano ${openBraces - closeBraces} parentesi graffe di chiusura '}'`);
+  } else if (closeBraces > openBraces) {
+    warnings.push(`⚠️ Ci sono ${closeBraces - openBraces} parentesi graffe '}' in più`);
+  }
+
+  // 2. Controllo parentesi tonde ( e )
+  const openParens = (code.match(/\(/g) || []).length;
+  const closeParens = (code.match(/\/\)/g) || []).length; // correzione sicura per le tonde
+  const actualCloseParens = (code.match(/\)/g) || []).length;
+  if (openParens !== actualCloseParens) {
+    warnings.push(`⚠️ Le parentesi tonde '(' e ')' non sono bilanciate`);
+  }
+
+  // 3. Controllo SwiftUI obbligatorio
+  if (code.includes('struct') && !code.includes('var body: some View')) {
+    warnings.push(`💡 Manca la proprietà obbligatoria in SwiftUI: 'var body: some View'`);
+  }
+
+  // 4. Controllo errori comuni su @State
+  if (code.includes('state ') && !code.includes('@State')) {
+    warnings.push(`💡 Errore '@State': hai scritto 'state' in minuscolo, usa '@State'`);
+  }
+
+  return warnings;
+};
+
   // Layout mode in Editor tab: 'full' (Solo Editor Maxi) or 'split' (Editor + iPhone affiancati)
   const [editorLayout, setEditorLayout] = useState<'full' | 'split'>('full');
 
@@ -349,6 +383,31 @@ struct MiaAppCustom: View {
     setEditorError(null);
     setEditorStdout(["// ✍️ Scrivi da Zero attivato!", "// Modifica il codice qui sotto e clicca '▶️ ESEGUI'."]);
   };
+          {/* 🔍 PANNELLO CONTROLLO SINTASSI IN TEMPO REALE */}
+          {(() => {
+            const syntaxWarnings = checkSwiftSyntax(editorCode);
+            if (syntaxWarnings.length === 0) return null;
+            
+            return (
+              <div className="mx-2 mb-1 p-2 bg-amber-950/80 border border-amber-600/50 rounded-xl text-amber-200 text-xs font-mono shrink-0 space-y-1">
+                <span className="font-bold flex items-center space-x-1 text-amber-300">
+                  <span>🔍 Controllo Sintassi Swift:</span>
+                </span>
+                {syntaxWarnings.map((warn, idx) => (
+                  <div key={idx} className="text-[11px]">{warn}</div>
+                ))}
+              </div>
+            );
+          })()}
+
+          {/* Error Banner */}
+          {editorError && (
+            <div className="mx-2 mb-1 p-2 bg-red-950 border border-red-800 text-red-200 text-xs flex items-center justify-between font-mono rounded-xl shrink-0">
+              <span>❌ {editorError}</span>
+              <button onClick={() => setEditorError(null)} className="text-red-400 font-bold ml-2">Chiudi</button>
+            </div>
+          )}
+
 
   // Quick Snippet Insert in Main Editor
   const insertMainSnippet = (snippet: string) => {
