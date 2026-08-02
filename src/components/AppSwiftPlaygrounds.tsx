@@ -361,73 +361,54 @@ struct MiaAppCustom: View {
   const runFreeformSwiftCode = () => {
     setIsExecutingEditor(true);
     setEditorError(null);
-    const logs: string[] = ["🚀 Esecuzione codice Swift 6.1..."];
+    const logs: string[] = ["🚀 Compilazione codice Swift 6.1..."];
 
     try {
+      if (!editorCode || !editorCode.trim()) {
+        throw new Error("L'editor è vuoto. Scrivi del codice Swift o SwiftUI.");
+      }
+
       const envVariables: Record<string, any> = {};
       const lines = editorCode.split('\n');
       const initialState: Record<string, any> = {};
       let extractedTitle = 'AppSwiftUI';
 
-      // Pass 0: Strict Swift Syntax Validation
+      // Pass 0: Quote & Parenthesis / Brace Balance Checking
       let openBraces = 0;
       let openParens = 0;
 
       for (let idx = 0; idx < lines.length; idx++) {
-        const line = lines[idx].trim();
-        if (!line || line.startsWith('//') || line.startsWith('import ')) continue;
+        const line = lines[idx];
+        if (!line.trim() || line.trim().startsWith('//')) continue;
 
-        // Check quote balance
-        let quotes = 0;
+        let inQuotes = false;
         for (let c = 0; c < line.length; c++) {
-          if (line[c] === '"' && (c === 0 || line[c - 1] !== '\\')) quotes++;
-          if (line[c] === '{') openBraces++;
-          if (line[c] === '}') openBraces--;
-          if (line[c] === '(') openParens++;
-          if (line[c] === ')') openParens--;
-        }
-        if (quotes % 2 !== 0) {
-          throw new Error(`Riga ${idx + 1}: Stringa non chiusa (manca la virgoletta " di chiusura).`);
+          if (line[c] === '"' && (c === 0 || line[c - 1] !== '\\')) {
+            inQuotes = !inQuotes;
+          }
+          if (!inQuotes) {
+            if (line[c] === '{') openBraces++;
+            if (line[c] === '}') openBraces--;
+            if (line[c] === '(') openParens++;
+            if (line[c] === ')') openParens--;
+          }
         }
 
-        // Check if line contains recognizable Swift syntax
-        const isValidSwift =
-          line.startsWith('struct ') ||
-          line.startsWith('@State ') ||
-          line.startsWith('var ') ||
-          line.startsWith('let ') ||
-          line.startsWith('func ') ||
-          line.startsWith('Text(') ||
-          line.startsWith('Button(') ||
-          line.startsWith('Image(') ||
-          line.startsWith('VStack') ||
-          line.startsWith('HStack') ||
-          line.startsWith('ZStack') ||
-          line.startsWith('List') ||
-          line.startsWith('Form') ||
-          line.startsWith('Spacer') ||
-          line.startsWith('Divider') ||
-          line.startsWith('print(') ||
-          line.startsWith('for ') ||
-          line.startsWith('if ') ||
-          line.startsWith('else') ||
-          line.startsWith('return') ||
-          line.startsWith('}') ||
-          line.startsWith('{') ||
-          line.startsWith('.') ||
-          /^[a-zA-Z0-9_]+\s*(\+=|-=|=|\*=|\/=)\s*.+$/.test(line) ||
-          /^[a-zA-Z0-9_]+\s*\(\s*\)$/.test(line);
-
-        if (!isValidSwift) {
-          throw new Error(`Riga ${idx + 1}: Sintassi Swift non valida ('${line}'). Non è un'istruzione Swift/SwiftUI riconosciuta.`);
+        if (inQuotes) {
+          throw new Error(`Manca la virgoletta " di chiusura alla riga ${idx + 1}.`);
         }
       }
 
-      if (openBraces !== 0) {
-        throw new Error(`Parentesi graffe { } non bilanciate in Swift! ${openBraces > 0 ? "Manca una '}' di chiusura." : "Troppe parentesi '}'."}`);
+      if (openBraces > 0) {
+        throw new Error(`Sintassi Swift: Mancano ${openBraces} parentesi graffe '}' di chiusura.`);
+      } else if (openBraces < 0) {
+        throw new Error(`Sintassi Swift: Ci sono ${Math.abs(openBraces)} parentesi graffe '}' di troppo.`);
       }
-      if (openParens !== 0) {
-        throw new Error(`Parentesi tonde ( ) non bilanciate in Swift! ${openParens > 0 ? "Manca una ')' di chiusura." : "Troppe parentesi ')'."}`);
+
+      if (openParens > 0) {
+        throw new Error(`Sintassi Swift: Mancano ${openParens} parentesi tonde ')' di chiusura.`);
+      } else if (openParens < 0) {
+        throw new Error(`Sintassi Swift: Ci sono ${Math.abs(openParens)} parentesi tonde ')' di troppo.`);
       }
 
       // Pass 1: Parse struct name and @State variables
@@ -435,14 +416,16 @@ struct MiaAppCustom: View {
         const trimmed = line.trim();
         
         // Struct Title
-        const structMatch = trimmed.match(/struct\s+(\w+)\s*:\s*View/);
+        const structMatch = trimmed.match(/struct\s+([a-zA-Z0-9_]+)\s*:\s*View/);
         if (structMatch) extractedTitle = structMatch[1];
 
         // @State Variables
-        const stateMatch = trimmed.match(/@State\s+var\s+(\w+)\s*=\s*(.+)/);
+        const stateMatch = trimmed.match(/@State\s+var\s+([a-zA-Z0-9_]+)\s*=\s*(.+)/);
         if (stateMatch) {
           const vName = stateMatch[1];
           let rawVal = stateMatch[2].trim();
+          if (rawVal.includes('//')) rawVal = rawVal.split('//')[0].trim();
+
           if (rawVal === 'true') initialState[vName] = true;
           else if (rawVal === 'false') initialState[vName] = false;
           else if (!isNaN(Number(rawVal))) initialState[vName] = Number(rawVal);
@@ -523,15 +506,16 @@ struct MiaAppCustom: View {
         }
       }
 
-      logs.push("✅ Codice eseguito con successo! Guarda il Simulatore iPhone per testare l'App.");
+      logs.push(`✅ Compilato con successo per 'struct ${extractedTitle}'.`);
+      logs.push(`📱 Simulatore aggiornato.`);
       setEditorStdout(logs);
       setParsedStateVars(initialState);
       setParsedViewTitle(extractedTitle);
 
     } catch (err: any) {
-      const errMsg = err?.message || 'Verifica il codice Swift';
+      const errMsg = err?.message || 'Verifica la sintassi del codice Swift';
       setEditorError(errMsg);
-      setEditorStdout(["❌ [ERRORE COMPILAZIONE SWIFT]", errMsg, "Correggi il codice nell'editor per eseguire l'App."]);
+      setEditorStdout(["❌ [ERRORE SINTASSI SWIFT]", errMsg, "💡 Correggi il codice nell'editor per aggiornare l'iPhone."]);
     } finally {
       setIsExecutingEditor(false);
     }
@@ -547,7 +531,7 @@ struct MiaAppCustom: View {
 
   useEffect(() => {
     runFreeformSwiftCode();
-  }, [selectedPresetId]);
+  }, [selectedPresetId, editorCode]);
 
   // State Action Handler for Interactive iPhone Simulator
   const updateStateVar = (key: string, valueOrFn: any) => {
@@ -1228,7 +1212,12 @@ struct MiaAppCustom: View {
                 {/* Textarea Field */}
                 <textarea
                   value={editorCode}
-                  onChange={(e) => setEditorCode(e.target.value)}
+                  onChange={(e) => {
+                    setEditorCode(e.target.value);
+                    if (selectedPresetId !== 'scratch') {
+                      setSelectedPresetId('scratch');
+                    }
+                  }}
                   spellCheck="false"
                   className="w-full h-full p-3 bg-transparent font-mono text-sm sm:text-base text-emerald-300 font-medium outline-none resize-none leading-6 border-0 focus:ring-0 selection:bg-orange-500/40 whitespace-pre overflow-x-auto"
                   placeholder="// Scrivi qui il tuo codice Swift o SwiftUI liberamente..."
