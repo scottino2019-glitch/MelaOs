@@ -26,10 +26,10 @@ interface CodePreset {
 const PRESETS: CodePreset[] = [
   {
     id: 'pizza_app',
-    name: 'ðŸ• Pizza Gourmet iOS',
+    name: '🍕 Pizza Gourmet iOS',
     category: 'SwiftUI',
     description: 'App di ordinazione pizze con carrello, selettore quantita, sconti e cassa.',
-    icon: 'ðŸ•',
+    icon: '🍕',
     code: `import SwiftUI
 
 struct PizzeriaBellaNapoli: View {
@@ -39,7 +39,7 @@ struct PizzeriaBellaNapoli: View {
     
     var body: some View {
         VStack(spacing: 16) {
-            Text("ðŸ• Bella Napoli Gourmet")
+            Text("🍕 Bella Napoli Gourmet")
                 .font(.title)
                 .foregroundColor(.orange)
             
@@ -49,7 +49,7 @@ struct PizzeriaBellaNapoli: View {
             VStack(spacing: 12) {
                 // Margherita Card
                 HStack {
-                    Text("ðŸ• Margherita (8â‚¬)")
+                    Text("🍕 Margherita (8€)")
                     Spacer()
                     Button("-") { if margherita > 0 { margherita -= 1 } }
                     Text("\\(margherita)")
@@ -58,7 +58,7 @@ struct PizzeriaBellaNapoli: View {
                 
                 // Diavola Card
                 HStack {
-                    Text("ðŸŒ¶ï¸ Diavola (10â‚¬)")
+                    Text("🌶️ Diavola (10€)")
                     Spacer()
                     Button("-") { if diavola > 0 { diavola -= 1 } }
                     Text("\\(diavola)")
@@ -67,7 +67,7 @@ struct PizzeriaBellaNapoli: View {
                 
                 // Quattro Formaggi
                 HStack {
-                    Text("ðŸ§€ 4 Formaggi (11â‚¬)")
+                    Text("🧀 4 Formaggi (11€)")
                     Spacer()
                     Button("-") { if quattroFormaggi > 0 { quattroFormaggi -= 1 } }
                     Text("\\(quattroFormaggi)")
@@ -87,10 +87,10 @@ struct PizzeriaBellaNapoli: View {
   },
   {
     id: 'music_player',
-    name: 'ðŸŽµ Music Player iOS',
+    name: '🎵 Music Player iOS',
     category: 'SwiftUI',
     description: 'Lettore musicale con riproduzione, brani, mi piace e controlli.',
-    icon: 'ðŸŽµ',
+    icon: '🎵',
     code: `import SwiftUI
 
 struct MusicPlayerView: View {
@@ -102,7 +102,7 @@ struct MusicPlayerView: View {
     
     var body: some View {
         VStack(spacing: 18) {
-            Text("ðŸŽµ Music Player iOS")
+            Text("🎵 Music Player iOS")
                 .font(.headline)
             
             Text(brani[songIndex])
@@ -110,23 +110,23 @@ struct MusicPlayerView: View {
                 .foregroundColor(.cyan)
             
             HStack(spacing: 24) {
-                Button("â®ï¸ Brano Prec") {
+                Button("⏮️ Brano Prec") {
                     if songIndex > 0 { songIndex -= 1 }
                     print("Brano precedente")
                 }
                 
-                Button(isPlaying ? "â¸ï¸ Pausa" : "â–¶ï¸ Play") {
+                Button(isPlaying ? "⏸️ Pausa" : "▶️ Play") {
                     isPlaying = !isPlaying
                     print("Riproduzione: \\(isPlaying)")
                 }
                 
-                Button("â­ï¸ Prossimo") {
+                Button("⏭️ Prossimo") {
                     songIndex = (songIndex + 1) % 3
                     print("Nuovo brano")
                 }
             }
             
-            Button(isLiked ? "â¤ï¸ Nei Preferiti" : "ðŸ¤ Aggiungi ai Preferiti") {
+            Button(isLiked ? "❤️ Nei Preferiti" : "🤍 Aggiungi ai Preferiti") {
                 isLiked = !isLiked
                 print("Preferito: \\(isLiked)")
             }
@@ -136,10 +136,10 @@ struct MusicPlayerView: View {
   },
   {
     id: 'social_feed',
-    name: 'ðŸ“¸ InstaSwift Feed',
+    name: '📸 InstaSwift Feed',
     category: 'SwiftUI',
     description: 'Social network con post, mi piace, commenti e segui.',
-    icon: 'ðŸ“¸',
+    icon: '📸',
     code: `import SwiftUI
 
 struct InstaSwiftPost: View {
@@ -151,7 +151,7 @@ struct InstaSwiftPost: View {
     var body: some View {
         VStack(spacing: 14) {
             HStack {
-                Text("ðŸ‘¤ marco_rossi_ios")
+                Text("👤 marco_rossi_ios")
                     .font(.headline)
                 
                 Button(isFollowing ? "Seguito" : "+ Segui") {
@@ -160,11 +160,11 @@ struct InstaSwiftPost: View {
                 }
             }
             
-            Text("ðŸ–¼ï¸ Tramonto mozzafiato a Costiera Amalfitana! ðŸŒ… #swiftui #ios")
+            Text("🖼️ Tramonto mozzafiato a Costiera Amalfitana! 🌅 #swiftui #ios")
                 .font(.body)
             
             HStack(spacing: 20) {
-                Button(isLiked ? "â¤ï¸ \\(likes) Mi Piace" : "ðŸ¤ \\(likes) Mi Piace") {
+                Button(isLiked ? "❤️ \\(likes) Mi Piace" : "🤍 \\(likes) Mi Piace") {
                     if isLiked {
                         likes -= 1
                     } else {
@@ -174,7 +174,7 @@ struct InstaSwiftPost: View {
                     print("Likes: \\(likes)")
                 }
                 
-                Button("ðŸ’¬ \\(commentsCount) Commenti") {
+                Button("💬 \\(commentsCount) Commenti") {
                     commentsCount += 1
                     print("Nuovo commento inserito!")
                 }
@@ -185,10 +185,10 @@ struct InstaSwiftPost: View {
   },
   {
     id: 'scratch',
-    name: 'âœï¸ Scrivi da Zero (App Libera)',
+    name: '✍️ Scrivi da Zero (App Libera)',
     category: 'SwiftUI',
     description: 'Crea da zero la tua app scrivendo liberamente codice Swift e SwiftUI.',
-    icon: 'âœï¸',
+    icon: '✍️',
     code: `import SwiftUI
 
 struct MiaAppCustom: View {
@@ -204,7 +204,7 @@ struct MiaAppCustom: View {
             Text(messaggio)
                 .font(.body)
             
-            Button("ðŸš€ Clicca Qui") {
+            Button("🚀 Clicca Qui") {
                 messaggio = "Hai premuto il pulsante nell'iPhone!"
                 print("Pulsante premuto con successo!")
             }
@@ -229,7 +229,7 @@ interface Level {
 const LEVELS: Level[] = [
   {
     id: 1,
-    title: "Livello 1: Raccogli la Prima Gemma ðŸ’Ž",
+    title: "Livello 1: Raccogli la Prima Gemma 💎",
     description: "Aiuta Byte a muoversi avanti di 3 caselle e raccogliere la gemma con raccogliGemma().",
     gridSize: 5,
     startX: 0,
@@ -243,7 +243,7 @@ raccogliGemma()`
   },
   {
     id: 2,
-    title: "Livello 2: La Svolta a Destra ðŸ”„",
+    title: "Livello 2: La Svolta a Destra 🔄",
     description: "Fai avanzare Byte, poi fallo girare a destra verso la gemma lucente.",
     gridSize: 5,
     startX: 1,
@@ -258,7 +258,7 @@ raccogliGemma()`
   },
   {
     id: 3,
-    title: "Livello 3: Ciclo For in Swift ðŸ”",
+    title: "Livello 3: Ciclo For in Swift 🔁",
     description: "Usa un ciclo 'for' in Swift per raccogliere 3 gemme consecutive!",
     gridSize: 5,
     startX: 0,
@@ -288,7 +288,7 @@ export default function AppSwiftPlaygrounds({ onNotification }: AppSwiftPlaygrou
   // FREEFORM SWIFT EDITOR STATES
   const [editorCode, setEditorCode] = useState<string>(PRESETS[0].code);
   const [selectedPresetId, setSelectedPresetId] = useState<string>(PRESETS[0].id);
-  const [editorStdout, setEditorStdout] = useState<string[]>(["// Compilatore Swift 6.1 pronto.", "// Clicca 'â–¶ï¸ ESEGUI' per testare ed aggiornare l'iPhone."]);
+  const [editorStdout, setEditorStdout] = useState<string[]>(["// Compilatore Swift 6.1 pronto.", "// Clicca '▶️ ESEGUI' per testare ed aggiornare l'iPhone."]);
   const [isExecutingEditor, setIsExecutingEditor] = useState<boolean>(false);
   const [editorError, setEditorError] = useState<string | null>(null);
 
@@ -319,7 +319,7 @@ export default function AppSwiftPlaygrounds({ onNotification }: AppSwiftPlaygrou
     setSelectedPresetId(preset.id);
     setEditorCode(preset.code);
     setEditorError(null);
-    setEditorStdout([`// Caricato template: ${preset.name}`, "// Clicca 'â–¶ï¸ ESEGUI' per testare l'app nell'iPhone."]);
+    setEditorStdout([`// Caricato template: ${preset.name}`, "// Clicca '▶️ ESEGUI' per testare l'app nell'iPhone."]);
   };
 
   const handleWriteFromScratch = () => {
@@ -339,7 +339,7 @@ struct MiaAppCustom: View {
             Text(messaggio)
                 .font(.body)
             
-            Button("ðŸš€ Clicca Qui") {
+            Button("🚀 Clicca Qui") {
                 messaggio = "Hai premuto il pulsante nell'iPhone!"
                 print("Pulsante premuto con successo!")
             }
@@ -347,7 +347,7 @@ struct MiaAppCustom: View {
     }
 }`);
     setEditorError(null);
-    setEditorStdout(["// âœï¸ Scrivi da Zero attivato!", "// Modifica il codice qui sotto e clicca 'â–¶ï¸ ESEGUI'."]);
+    setEditorStdout(["// ✍️ Scrivi da Zero attivato!", "// Modifica il codice qui sotto e clicca '▶️ ESEGUI'."]);
   };
 
   // Quick Snippet Insert in Main Editor
@@ -361,13 +361,74 @@ struct MiaAppCustom: View {
   const runFreeformSwiftCode = () => {
     setIsExecutingEditor(true);
     setEditorError(null);
-    const logs: string[] = ["ðŸš€ Esecuzione codice Swift 6.1..."];
+    const logs: string[] = ["🚀 Esecuzione codice Swift 6.1..."];
 
     try {
       const envVariables: Record<string, any> = {};
       const lines = editorCode.split('\n');
       const initialState: Record<string, any> = {};
       let extractedTitle = 'AppSwiftUI';
+
+      // Pass 0: Strict Swift Syntax Validation
+      let openBraces = 0;
+      let openParens = 0;
+
+      for (let idx = 0; idx < lines.length; idx++) {
+        const line = lines[idx].trim();
+        if (!line || line.startsWith('//') || line.startsWith('import ')) continue;
+
+        // Check quote balance
+        let quotes = 0;
+        for (let c = 0; c < line.length; c++) {
+          if (line[c] === '"' && (c === 0 || line[c - 1] !== '\\')) quotes++;
+          if (line[c] === '{') openBraces++;
+          if (line[c] === '}') openBraces--;
+          if (line[c] === '(') openParens++;
+          if (line[c] === ')') openParens--;
+        }
+        if (quotes % 2 !== 0) {
+          throw new Error(`Riga ${idx + 1}: Stringa non chiusa (manca la virgoletta " di chiusura).`);
+        }
+
+        // Check if line contains recognizable Swift syntax
+        const isValidSwift =
+          line.startsWith('struct ') ||
+          line.startsWith('@State ') ||
+          line.startsWith('var ') ||
+          line.startsWith('let ') ||
+          line.startsWith('func ') ||
+          line.startsWith('Text(') ||
+          line.startsWith('Button(') ||
+          line.startsWith('Image(') ||
+          line.startsWith('VStack') ||
+          line.startsWith('HStack') ||
+          line.startsWith('ZStack') ||
+          line.startsWith('List') ||
+          line.startsWith('Form') ||
+          line.startsWith('Spacer') ||
+          line.startsWith('Divider') ||
+          line.startsWith('print(') ||
+          line.startsWith('for ') ||
+          line.startsWith('if ') ||
+          line.startsWith('else') ||
+          line.startsWith('return') ||
+          line.startsWith('}') ||
+          line.startsWith('{') ||
+          line.startsWith('.') ||
+          /^[a-zA-Z0-9_]+\s*(\+=|-=|=|\*=|\/=)\s*.+$/.test(line) ||
+          /^[a-zA-Z0-9_]+\s*\(\s*\)$/.test(line);
+
+        if (!isValidSwift) {
+          throw new Error(`Riga ${idx + 1}: Sintassi Swift non valida ('${line}'). Non è un'istruzione Swift/SwiftUI riconosciuta.`);
+        }
+      }
+
+      if (openBraces !== 0) {
+        throw new Error(`Parentesi graffe { } non bilanciate in Swift! ${openBraces > 0 ? "Manca una '}' di chiusura." : "Troppe parentesi '}'."}`);
+      }
+      if (openParens !== 0) {
+        throw new Error(`Parentesi tonde ( ) non bilanciate in Swift! ${openParens > 0 ? "Manca una ')' di chiusura." : "Troppe parentesi ')'."}`);
+      }
 
       // Pass 1: Parse struct name and @State variables
       lines.forEach(line => {
@@ -462,16 +523,25 @@ struct MiaAppCustom: View {
         }
       }
 
-      logs.push("âœ… Codice eseguito! Vai al Simulatore iPhone per testare l'App.");
+      logs.push("✅ Codice eseguito con successo! Guarda il Simulatore iPhone per testare l'App.");
       setEditorStdout(logs);
       setParsedStateVars(initialState);
       setParsedViewTitle(extractedTitle);
 
     } catch (err: any) {
-      setEditorError(`Errore Swift: ${err?.message || 'Verifica il codice'}`);
-      setEditorStdout(prev => [...prev, `âŒ [Errore] ${err?.message}`]);
+      const errMsg = err?.message || 'Verifica il codice Swift';
+      setEditorError(errMsg);
+      setEditorStdout(["❌ [ERRORE COMPILAZIONE SWIFT]", errMsg, "Correggi il codice nell'editor per eseguire l'App."]);
     } finally {
       setIsExecutingEditor(false);
+    }
+  };
+
+  const handleRunCodeAndSwitch = () => {
+    runFreeformSwiftCode();
+    setMainTab('preview');
+    if (onNotification) {
+      onNotification("Esecuzione Swift", "La schermata dell'iPhone Simulatore è stata aggiornata!");
     }
   };
 
@@ -488,7 +558,7 @@ struct MiaAppCustom: View {
       } else {
         next[key] = valueOrFn;
       }
-      setEditorStdout(logs => [...logs, `[iPhone Touch] State update âž” ${key} = ${JSON.stringify(next[key])}`]);
+      setEditorStdout(logs => [...logs, `[iPhone Touch] State update ➔ ${key} = ${JSON.stringify(next[key])}`]);
       return next;
     });
   };
@@ -518,7 +588,7 @@ struct MiaAppCustom: View {
     if (isPuzzleSimulating) return;
     setIsPuzzleSimulating(true);
     setPuzzleError(null);
-    setPuzzleConsole(["âš™ï¸ Avvio esecuzione comandi Byte..."]);
+    setPuzzleConsole(["⚙️ Avvio esecuzione comandi Byte..."]);
 
     const lvl = LEVELS[currentLevelIdx];
     let cx = lvl.startX;
@@ -539,7 +609,7 @@ struct MiaAppCustom: View {
         else if (cdir === 'N') cy--;
 
         if (cx < 0 || cx >= lvl.gridSize || cy < 0 || cy >= lvl.gridSize) {
-          steps.push({ x: cx, y: cy, msg: 'âš ï¸ Byte ha urtato il bordo dell\'isola!', err: true });
+          steps.push({ x: cx, y: cy, msg: '⚠️ Byte ha urtato il bordo dell\'isola!', err: true });
           break;
         }
         steps.push({ x: cx, y: cy, dir: cdir, msg: `Spostamento avanti a (${cx}, ${cy})` });
@@ -555,9 +625,9 @@ struct MiaAppCustom: View {
         const found = cGems.find((g: any) => g.x === cx && g.y === cy && !g.collected);
         if (found) {
           found.collected = true;
-          steps.push({ x: cx, y: cy, dir: cdir, msg: 'âœ¨ Gemma RAGGIUNTA e RACCOLTA!', collect: true });
+          steps.push({ x: cx, y: cy, dir: cdir, msg: '✨ Gemma RAGGIUNTA e RACCOLTA!', collect: true });
         } else {
-          steps.push({ x: cx, y: cy, msg: 'âš ï¸ Nessuna gemma da raccogliere in questa casella!', err: true });
+          steps.push({ x: cx, y: cy, msg: '⚠️ Nessuna gemma da raccogliere in questa casella!', err: true });
           break;
         }
       }
@@ -570,7 +640,7 @@ struct MiaAppCustom: View {
         setIsPuzzleSimulating(false);
         const win = cGems.every((g: any) => g.collected);
         if (win) {
-          setPuzzleConsole(prev => [...prev, 'ðŸŽ‰ FANTASTICO! LIVELLO SUPERATO CON SUCCESSO!']);
+          setPuzzleConsole(prev => [...prev, '🎉 FANTASTICO! LIVELLO SUPERATO CON SUCCESSO!']);
           onNotification("Vittoria Swift!", `Hai superato "${currentLevel.title}"!`);
         } else {
           setPuzzleError("Devi raccogliere tutte le gemme per finire il livello!");
@@ -643,11 +713,26 @@ struct MiaAppCustom: View {
             {/* APP CONTENT AREA */}
             <div className="w-full flex-1 flex flex-col items-center justify-center space-y-3 py-2 my-auto">
               
-              {/* APP 1: PIZZERIA GOURMET */}
-              {isPizza ? (
+              {/* COMPILER ERROR SCREEN */}
+              {editorError ? (
+                <div className="w-full flex-1 flex flex-col items-center justify-center space-y-2.5 p-3 bg-red-950/90 rounded-2xl border-2 border-red-500/80 text-red-100 text-center animate-fadeIn my-auto">
+                  <div className="w-10 h-10 rounded-full bg-red-600/30 border border-red-500 flex items-center justify-center text-red-400 font-bold shrink-0">
+                    <AlertTriangle className="w-5 h-5 animate-bounce" />
+                  </div>
+                  <h3 className="text-xs font-black text-red-400 uppercase tracking-wide">
+                    ❌ Errore Compilazione Swift
+                  </h3>
+                  <div className="bg-black/90 p-2.5 rounded-xl border border-red-800 text-[10px] sm:text-[11px] font-mono text-red-200 text-left w-full overflow-x-auto max-h-36">
+                    {editorError}
+                  </div>
+                  <p className="text-[10px] text-zinc-400">
+                    Correggi la sintassi nell'editor e premi <strong>▶️ ESEGUI CODICE</strong>.
+                  </p>
+                </div>
+              ) : isPizza ? (
                 <div className="w-full space-y-2.5 text-left">
                   <div className="text-center">
-                    <h3 className="text-xs sm:text-sm font-extrabold text-orange-400">ðŸ• Pizzeria Bella Napoli</h3>
+                    <h3 className="text-xs sm:text-sm font-extrabold text-orange-400">🍕 Pizzeria Bella Napoli</h3>
                     <p className="text-[10px] text-zinc-400">Menu & Cassa SwiftUI</p>
                   </div>
 
@@ -656,8 +741,8 @@ struct MiaAppCustom: View {
                     {/* Margherita */}
                     <div className="bg-zinc-900 border border-zinc-800 p-2 rounded-xl flex items-center justify-between">
                       <div>
-                        <p className="text-[11px] sm:text-xs font-bold text-white">Margherita (8â‚¬)</p>
-                        <p className="text-[10px] text-zinc-400">QuantitÃ : {parsedStateVars.margherita || 0}</p>
+                        <p className="text-[11px] sm:text-xs font-bold text-white">Margherita (8€)</p>
+                        <p className="text-[10px] text-zinc-400">Quantità: {parsedStateVars.margherita || 0}</p>
                       </div>
                       <div className="flex items-center space-x-1">
                         <button
@@ -678,8 +763,8 @@ struct MiaAppCustom: View {
                     {/* Diavola */}
                     <div className="bg-zinc-900 border border-zinc-800 p-2 rounded-xl flex items-center justify-between">
                       <div>
-                        <p className="text-[11px] sm:text-xs font-bold text-white">ðŸŒ¶ï¸ Diavola (10â‚¬)</p>
-                        <p className="text-[10px] text-zinc-400">QuantitÃ : {parsedStateVars.diavola || 0}</p>
+                        <p className="text-[11px] sm:text-xs font-bold text-white">🌶️ Diavola (10€)</p>
+                        <p className="text-[10px] text-zinc-400">Quantità: {parsedStateVars.diavola || 0}</p>
                       </div>
                       <div className="flex items-center space-x-1">
                         <button
@@ -700,8 +785,8 @@ struct MiaAppCustom: View {
                     {/* Quattro Formaggi */}
                     <div className="bg-zinc-900 border border-zinc-800 p-2 rounded-xl flex items-center justify-between">
                       <div>
-                        <p className="text-[11px] sm:text-xs font-bold text-white">ðŸ§€ 4 Formaggi (11â‚¬)</p>
-                        <p className="text-[10px] text-zinc-400">QuantitÃ : {parsedStateVars.quattroFormaggi || 0}</p>
+                        <p className="text-[11px] sm:text-xs font-bold text-white">🧀 4 Formaggi (11€)</p>
+                        <p className="text-[10px] text-zinc-400">Quantità: {parsedStateVars.quattroFormaggi || 0}</p>
                       </div>
                       <div className="flex items-center space-x-1">
                         <button
@@ -724,7 +809,7 @@ struct MiaAppCustom: View {
                   <div className="bg-orange-500/10 border border-orange-500/30 p-2 rounded-xl text-center">
                     <span className="text-[9px] text-zinc-400 font-bold uppercase">Totale Calcolato</span>
                     <p className="text-lg sm:text-xl font-black text-amber-300">
-                      {(parsedStateVars.margherita || 0) * 8 + (parsedStateVars.diavola || 0) * 10 + (parsedStateVars.quattroFormaggi || 0) * 11} â‚¬
+                      {(parsedStateVars.margherita || 0) * 8 + (parsedStateVars.diavola || 0) * 10 + (parsedStateVars.quattroFormaggi || 0) * 11} €
                     </p>
                   </div>
 
@@ -786,7 +871,7 @@ struct MiaAppCustom: View {
                         : 'bg-zinc-900 border-zinc-800 text-zinc-400'
                     }`}
                   >
-                    {parsedStateVars.isLiked ? 'â¤ï¸ Preferito' : 'ðŸ¤ Aggiungi ai Preferiti'}
+                    {parsedStateVars.isLiked ? '❤️ Preferito' : '🤍 Aggiungi ai Preferiti'}
                   </button>
                 </div>
               ) : isSocial ? (
@@ -796,7 +881,7 @@ struct MiaAppCustom: View {
                   <div className="flex items-center justify-between bg-zinc-900 p-2 rounded-xl border border-zinc-800">
                     <div className="flex items-center space-x-2">
                       <div className="w-6 h-6 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 flex items-center justify-center text-white text-[10px] font-bold">
-                        ðŸ‘¤
+                        👤
                       </div>
                       <span className="text-[11px] font-bold text-white truncate max-w-[110px]">marco_rossi</span>
                     </div>
@@ -813,7 +898,7 @@ struct MiaAppCustom: View {
 
                   {/* Post Image Placeholder */}
                   <div className="h-28 sm:h-32 rounded-xl bg-gradient-to-br from-amber-600 to-orange-700 p-2.5 flex flex-col justify-end text-white shadow">
-                    <span className="text-[11px] font-bold">ðŸŒ… Tramonto a Capri</span>
+                    <span className="text-[11px] font-bold">🌅 Tramonto a Capri</span>
                     <span className="text-[9px] text-amber-200">Scattato da iPhone 16 Pro</span>
                   </div>
 
@@ -827,7 +912,7 @@ struct MiaAppCustom: View {
                       }}
                       className="px-2.5 py-1 bg-zinc-900 border border-zinc-800 rounded-xl text-[11px] font-bold text-rose-400 flex items-center space-x-1"
                     >
-                      <span>{parsedStateVars.isLiked ? 'â¤ï¸' : 'ðŸ¤'}</span>
+                      <span>{parsedStateVars.isLiked ? '❤️' : '🤍'}</span>
                       <span>{parsedStateVars.likes || 142}</span>
                     </button>
 
@@ -835,7 +920,7 @@ struct MiaAppCustom: View {
                       onClick={() => updateStateVar('commentsCount', (c: number) => (c || 18) + 1)}
                       className="px-2.5 py-1 bg-zinc-900 border border-zinc-800 rounded-xl text-[11px] font-bold text-cyan-400"
                     >
-                      ðŸ’¬ {parsedStateVars.commentsCount || 18} Commenti
+                      💬 {parsedStateVars.commentsCount || 18} Commenti
                     </button>
                   </div>
                 </div>
@@ -891,7 +976,7 @@ struct MiaAppCustom: View {
                         </div>
                       ) : (
                         <div className="p-2.5 bg-zinc-900/80 rounded-2xl border border-zinc-800 text-[11px] text-zinc-400">
-                          ðŸ“± Scrivi `Text("...")` o `Button("...")` nell'editor per vedere la tua UI.
+                          📱 Scrivi `Text("...")` o `Button("...")` nell'editor per vedere la tua UI.
                         </div>
                       )}
 
@@ -910,7 +995,7 @@ struct MiaAppCustom: View {
                                   } else if (typeof val === 'boolean') {
                                     updateStateVar(vKey, (v: boolean) => !v);
                                   } else if (typeof val === 'string') {
-                                    updateStateVar(vKey, "Azione eseguita nell'iPhone! ðŸš€");
+                                    updateStateVar(vKey, "Azione eseguita nell'iPhone! 🚀");
                                   }
                                 });
                                 setEditorStdout(prev => [...prev, `[iPhone Touch] Premuto pulsante '${bLabel}'`]);
@@ -986,7 +1071,7 @@ struct MiaAppCustom: View {
             }`}
           >
             <Code className="w-3.5 h-3.5" />
-            <span>ðŸ’» Codice Swift</span>
+            <span>💻 Codice Swift</span>
           </button>
 
           <button
@@ -996,7 +1081,7 @@ struct MiaAppCustom: View {
             }`}
           >
             <Smartphone className="w-3.5 h-3.5" />
-            <span>ðŸ“± Simulatore iPhone</span>
+            <span>📱 Simulatore iPhone</span>
           </button>
 
           <button
@@ -1006,7 +1091,7 @@ struct MiaAppCustom: View {
             }`}
           >
             <Award className="w-3.5 h-3.5" />
-            <span>ðŸŽ® Gioco Byte</span>
+            <span>🎮 Gioco Byte</span>
           </button>
         </div>
 
@@ -1041,7 +1126,7 @@ struct MiaAppCustom: View {
                 className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 flex items-center space-x-1 transition shadow shrink-0 active:scale-95"
               >
                 <Edit3 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                <span>âœï¸ Scrivi da Zero</span>
+                <span>✍️ Scrivi da Zero</span>
               </button>
             </div>
 
@@ -1072,12 +1157,12 @@ struct MiaAppCustom: View {
               </div>
 
               <button
-                onClick={runFreeformSwiftCode}
+                onClick={handleRunCodeAndSwitch}
                 disabled={isExecutingEditor}
                 className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-black bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 text-white flex items-center space-x-1 sm:space-x-1.5 shadow-lg active:scale-95 transition disabled:opacity-50 shrink-0"
               >
                 <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" />
-                <span>â–¶ï¸ ESEGUI CODICE</span>
+                <span>▶️ ESEGUI CODICE</span>
               </button>
             </div>
 
@@ -1164,7 +1249,7 @@ struct MiaAppCustom: View {
           {/* Error Banner */}
           {editorError && (
             <div className="mx-2 mb-1 p-2 bg-red-950 border border-red-800 text-red-200 text-xs flex items-center justify-between font-mono rounded-xl shrink-0">
-              <span>âŒ {editorError}</span>
+              <span>❌ {editorError}</span>
               <button onClick={() => setEditorError(null)} className="text-red-400 font-bold ml-2">Chiudi</button>
             </div>
           )}
@@ -1184,7 +1269,7 @@ struct MiaAppCustom: View {
                 <div 
                   key={idx}
                   className={
-                    log.includes('âŒ') ? 'text-red-400 font-bold' :
+                    log.includes('❌') ? 'text-red-400 font-bold' :
                     log.includes('[iPhone Touch]') ? 'text-amber-400 font-semibold' :
                     log.includes('successo') ? 'text-emerald-400 font-bold' : 'text-zinc-300'
                   }
@@ -1241,7 +1326,7 @@ struct MiaAppCustom: View {
                 }`}
               >
                 <Code className="w-3 h-3" />
-                <span>ðŸ“ Codice Byte</span>
+                <span>📝 Codice Byte</span>
               </button>
               <button
                 onClick={() => setByteSubTab('island')}
@@ -1250,7 +1335,7 @@ struct MiaAppCustom: View {
                 }`}
               >
                 <Award className="w-3 h-3" />
-                <span>ðŸŽ® Isola</span>
+                <span>🎮 Isola</span>
               </button>
               <button
                 onClick={() => setByteSubTab('split')}
@@ -1292,11 +1377,11 @@ struct MiaAppCustom: View {
                       >
                         {isByteHere && (
                           <span className="animate-bounce text-xl sm:text-2xl">
-                            {byteDirection === 'E' ? 'ðŸ‘¾âž”' : byteDirection === 'S' ? 'ðŸ‘¾ðŸ‘‡' : byteDirection === 'W' ? 'ðŸ‘ˆðŸ‘¾' : 'ðŸ‘¾ðŸ‘†'}
+                            {byteDirection === 'E' ? '👾➔' : byteDirection === 'S' ? '👾👇' : byteDirection === 'W' ? '👈👾' : '👾👆'}
                           </span>
                         )}
                         {gem && !gem.collected && !isByteHere && (
-                          <span className="animate-pulse text-xl sm:text-2xl">ðŸ’Ž</span>
+                          <span className="animate-pulse text-xl sm:text-2xl">💎</span>
                         )}
                       </div>
                     );
@@ -1305,7 +1390,7 @@ struct MiaAppCustom: View {
 
                 {puzzleError && (
                   <div className="mt-2 p-2 bg-red-950 text-red-200 text-xs rounded-xl border border-red-800 font-bold text-center">
-                    âš ï¸ {puzzleError}
+                    ⚠️ {puzzleError}
                   </div>
                 )}
 
@@ -1318,7 +1403,7 @@ struct MiaAppCustom: View {
                 
                 <div className="flex items-center justify-between shrink-0">
                   <h4 className="text-xs font-black text-orange-400 uppercase tracking-wider">
-                    ðŸ“ Codice Istruzioni Swift Byte:
+                    📝 Codice Istruzioni Swift Byte:
                   </h4>
 
                   <button
@@ -1393,7 +1478,7 @@ struct MiaAppCustom: View {
                   disabled={isPuzzleSimulating}
                   className="w-full py-2.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 text-white font-black text-xs rounded-xl shadow-lg active:scale-98 transition shrink-0"
                 >
-                  â–¶ï¸ ESEGUI CODICE BYTE
+                  ▶️ ESEGUI CODICE BYTE
                 </button>
 
                 {/* Byte Log Output */}
