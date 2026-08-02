@@ -26,10 +26,10 @@ interface CodePreset {
 const PRESETS: CodePreset[] = [
   {
     id: 'pizza_app',
-    name: '🍕 Pizza Gourmet iOS',
+    name: 'ðŸ• Pizza Gourmet iOS',
     category: 'SwiftUI',
     description: 'App di ordinazione pizze con carrello, selettore quantita, sconti e cassa.',
-    icon: '🍕',
+    icon: 'ðŸ•',
     code: `import SwiftUI
 
 struct PizzeriaBellaNapoli: View {
@@ -39,7 +39,7 @@ struct PizzeriaBellaNapoli: View {
     
     var body: some View {
         VStack(spacing: 16) {
-            Text("🍕 Bella Napoli Gourmet")
+            Text("ðŸ• Bella Napoli Gourmet")
                 .font(.title)
                 .foregroundColor(.orange)
             
@@ -49,7 +49,7 @@ struct PizzeriaBellaNapoli: View {
             VStack(spacing: 12) {
                 // Margherita Card
                 HStack {
-                    Text("🍕 Margherita (8€)")
+                    Text("ðŸ• Margherita (8â‚¬)")
                     Spacer()
                     Button("-") { if margherita > 0 { margherita -= 1 } }
                     Text("\\(margherita)")
@@ -58,7 +58,7 @@ struct PizzeriaBellaNapoli: View {
                 
                 // Diavola Card
                 HStack {
-                    Text("🌶️ Diavola (10€)")
+                    Text("ðŸŒ¶ï¸ Diavola (10â‚¬)")
                     Spacer()
                     Button("-") { if diavola > 0 { diavola -= 1 } }
                     Text("\\(diavola)")
@@ -67,7 +67,7 @@ struct PizzeriaBellaNapoli: View {
                 
                 // Quattro Formaggi
                 HStack {
-                    Text("🧀 4 Formaggi (11€)")
+                    Text("ðŸ§€ 4 Formaggi (11â‚¬)")
                     Spacer()
                     Button("-") { if quattroFormaggi > 0 { quattroFormaggi -= 1 } }
                     Text("\\(quattroFormaggi)")
@@ -87,10 +87,10 @@ struct PizzeriaBellaNapoli: View {
   },
   {
     id: 'music_player',
-    name: '🎵 Music Player iOS',
+    name: 'ðŸŽµ Music Player iOS',
     category: 'SwiftUI',
     description: 'Lettore musicale con riproduzione, brani, mi piace e controlli.',
-    icon: '🎵',
+    icon: 'ðŸŽµ',
     code: `import SwiftUI
 
 struct MusicPlayerView: View {
@@ -102,7 +102,7 @@ struct MusicPlayerView: View {
     
     var body: some View {
         VStack(spacing: 18) {
-            Text("🎵 Music Player iOS")
+            Text("ðŸŽµ Music Player iOS")
                 .font(.headline)
             
             Text(brani[songIndex])
@@ -110,23 +110,23 @@ struct MusicPlayerView: View {
                 .foregroundColor(.cyan)
             
             HStack(spacing: 24) {
-                Button("⏮️ Brano Prec") {
+                Button("â®ï¸ Brano Prec") {
                     if songIndex > 0 { songIndex -= 1 }
                     print("Brano precedente")
                 }
                 
-                Button(isPlaying ? "⏸️ Pausa" : "▶️ Play") {
+                Button(isPlaying ? "â¸ï¸ Pausa" : "â–¶ï¸ Play") {
                     isPlaying = !isPlaying
                     print("Riproduzione: \\(isPlaying)")
                 }
                 
-                Button("⏭️ Prossimo") {
+                Button("â­ï¸ Prossimo") {
                     songIndex = (songIndex + 1) % 3
                     print("Nuovo brano")
                 }
             }
             
-            Button(isLiked ? "❤️ Nei Preferiti" : "🤍 Aggiungi ai Preferiti") {
+            Button(isLiked ? "â¤ï¸ Nei Preferiti" : "ðŸ¤ Aggiungi ai Preferiti") {
                 isLiked = !isLiked
                 print("Preferito: \\(isLiked)")
             }
@@ -136,10 +136,10 @@ struct MusicPlayerView: View {
   },
   {
     id: 'social_feed',
-    name: '📸 InstaSwift Feed',
+    name: 'ðŸ“¸ InstaSwift Feed',
     category: 'SwiftUI',
     description: 'Social network con post, mi piace, commenti e segui.',
-    icon: '📸',
+    icon: 'ðŸ“¸',
     code: `import SwiftUI
 
 struct InstaSwiftPost: View {
@@ -151,7 +151,7 @@ struct InstaSwiftPost: View {
     var body: some View {
         VStack(spacing: 14) {
             HStack {
-                Text("👤 marco_rossi_ios")
+                Text("ðŸ‘¤ marco_rossi_ios")
                     .font(.headline)
                 
                 Button(isFollowing ? "Seguito" : "+ Segui") {
@@ -160,11 +160,11 @@ struct InstaSwiftPost: View {
                 }
             }
             
-            Text("🖼️ Tramonto mozzafiato a Costiera Amalfitana! 🌅 #swiftui #ios")
+            Text("ðŸ–¼ï¸ Tramonto mozzafiato a Costiera Amalfitana! ðŸŒ… #swiftui #ios")
                 .font(.body)
             
             HStack(spacing: 20) {
-                Button(isLiked ? "❤️ \\(likes) Mi Piace" : "🤍 \\(likes) Mi Piace") {
+                Button(isLiked ? "â¤ï¸ \\(likes) Mi Piace" : "ðŸ¤ \\(likes) Mi Piace") {
                     if isLiked {
                         likes -= 1
                     } else {
@@ -174,7 +174,7 @@ struct InstaSwiftPost: View {
                     print("Likes: \\(likes)")
                 }
                 
-                Button("💬 \\(commentsCount) Commenti") {
+                Button("ðŸ’¬ \\(commentsCount) Commenti") {
                     commentsCount += 1
                     print("Nuovo commento inserito!")
                 }
@@ -185,10 +185,10 @@ struct InstaSwiftPost: View {
   },
   {
     id: 'scratch',
-    name: '✍️ Scrivi da Zero (App Libera)',
+    name: 'âœï¸ Scrivi da Zero (App Libera)',
     category: 'SwiftUI',
     description: 'Crea da zero la tua app scrivendo liberamente codice Swift e SwiftUI.',
-    icon: '✍️',
+    icon: 'âœï¸',
     code: `import SwiftUI
 
 struct MiaAppCustom: View {
@@ -204,7 +204,7 @@ struct MiaAppCustom: View {
             Text(messaggio)
                 .font(.body)
             
-            Button("🚀 Clicca Qui") {
+            Button("ðŸš€ Clicca Qui") {
                 messaggio = "Hai premuto il pulsante nell'iPhone!"
                 print("Pulsante premuto con successo!")
             }
@@ -229,7 +229,7 @@ interface Level {
 const LEVELS: Level[] = [
   {
     id: 1,
-    title: "Livello 1: Raccogli la Prima Gemma 💎",
+    title: "Livello 1: Raccogli la Prima Gemma ðŸ’Ž",
     description: "Aiuta Byte a muoversi avanti di 3 caselle e raccogliere la gemma con raccogliGemma().",
     gridSize: 5,
     startX: 0,
@@ -243,7 +243,7 @@ raccogliGemma()`
   },
   {
     id: 2,
-    title: "Livello 2: La Svolta a Destra 🔄",
+    title: "Livello 2: La Svolta a Destra ðŸ”„",
     description: "Fai avanzare Byte, poi fallo girare a destra verso la gemma lucente.",
     gridSize: 5,
     startX: 1,
@@ -258,7 +258,7 @@ raccogliGemma()`
   },
   {
     id: 3,
-    title: "Livello 3: Ciclo For in Swift 🔁",
+    title: "Livello 3: Ciclo For in Swift ðŸ”",
     description: "Usa un ciclo 'for' in Swift per raccogliere 3 gemme consecutive!",
     gridSize: 5,
     startX: 0,
@@ -288,7 +288,7 @@ export default function AppSwiftPlaygrounds({ onNotification }: AppSwiftPlaygrou
   // FREEFORM SWIFT EDITOR STATES
   const [editorCode, setEditorCode] = useState<string>(PRESETS[0].code);
   const [selectedPresetId, setSelectedPresetId] = useState<string>(PRESETS[0].id);
-  const [editorStdout, setEditorStdout] = useState<string[]>(["// Compilatore Swift 6.1 pronto.", "// Clicca '▶️ ESEGUI' per testare ed aggiornare l'iPhone."]);
+  const [editorStdout, setEditorStdout] = useState<string[]>(["// Compilatore Swift 6.1 pronto.", "// Clicca 'â–¶ï¸ ESEGUI' per testare ed aggiornare l'iPhone."]);
   const [isExecutingEditor, setIsExecutingEditor] = useState<boolean>(false);
   const [editorError, setEditorError] = useState<string | null>(null);
 
@@ -319,7 +319,7 @@ export default function AppSwiftPlaygrounds({ onNotification }: AppSwiftPlaygrou
     setSelectedPresetId(preset.id);
     setEditorCode(preset.code);
     setEditorError(null);
-    setEditorStdout([`// Caricato template: ${preset.name}`, "// Clicca '▶️ ESEGUI' per testare l'app nell'iPhone."]);
+    setEditorStdout([`// Caricato template: ${preset.name}`, "// Clicca 'â–¶ï¸ ESEGUI' per testare l'app nell'iPhone."]);
   };
 
   const handleWriteFromScratch = () => {
@@ -339,7 +339,7 @@ struct MiaAppCustom: View {
             Text(messaggio)
                 .font(.body)
             
-            Button("🚀 Clicca Qui") {
+            Button("ðŸš€ Clicca Qui") {
                 messaggio = "Hai premuto il pulsante nell'iPhone!"
                 print("Pulsante premuto con successo!")
             }
@@ -347,7 +347,7 @@ struct MiaAppCustom: View {
     }
 }`);
     setEditorError(null);
-    setEditorStdout(["// ✍️ Scrivi da Zero attivato!", "// Modifica il codice qui sotto e clicca '▶️ ESEGUI'."]);
+    setEditorStdout(["// âœï¸ Scrivi da Zero attivato!", "// Modifica il codice qui sotto e clicca 'â–¶ï¸ ESEGUI'."]);
   };
 
   // Quick Snippet Insert in Main Editor
@@ -361,7 +361,7 @@ struct MiaAppCustom: View {
   const runFreeformSwiftCode = () => {
     setIsExecutingEditor(true);
     setEditorError(null);
-    const logs: string[] = ["🚀 Esecuzione codice Swift 6.1..."];
+    const logs: string[] = ["ðŸš€ Esecuzione codice Swift 6.1..."];
 
     try {
       const envVariables: Record<string, any> = {};
@@ -462,14 +462,14 @@ struct MiaAppCustom: View {
         }
       }
 
-      logs.push("✅ Codice eseguito! Vai al Simulatore iPhone per testare l'App.");
+      logs.push("âœ… Codice eseguito! Vai al Simulatore iPhone per testare l'App.");
       setEditorStdout(logs);
       setParsedStateVars(initialState);
       setParsedViewTitle(extractedTitle);
 
     } catch (err: any) {
       setEditorError(`Errore Swift: ${err?.message || 'Verifica il codice'}`);
-      setEditorStdout(prev => [...prev, `❌ [Errore] ${err?.message}`]);
+      setEditorStdout(prev => [...prev, `âŒ [Errore] ${err?.message}`]);
     } finally {
       setIsExecutingEditor(false);
     }
@@ -488,7 +488,7 @@ struct MiaAppCustom: View {
       } else {
         next[key] = valueOrFn;
       }
-      setEditorStdout(logs => [...logs, `[iPhone Touch] State update ➔ ${key} = ${JSON.stringify(next[key])}`]);
+      setEditorStdout(logs => [...logs, `[iPhone Touch] State update âž” ${key} = ${JSON.stringify(next[key])}`]);
       return next;
     });
   };
@@ -518,7 +518,7 @@ struct MiaAppCustom: View {
     if (isPuzzleSimulating) return;
     setIsPuzzleSimulating(true);
     setPuzzleError(null);
-    setPuzzleConsole(["⚙️ Avvio esecuzione comandi Byte..."]);
+    setPuzzleConsole(["âš™ï¸ Avvio esecuzione comandi Byte..."]);
 
     const lvl = LEVELS[currentLevelIdx];
     let cx = lvl.startX;
@@ -539,7 +539,7 @@ struct MiaAppCustom: View {
         else if (cdir === 'N') cy--;
 
         if (cx < 0 || cx >= lvl.gridSize || cy < 0 || cy >= lvl.gridSize) {
-          steps.push({ x: cx, y: cy, msg: '⚠️ Byte ha urtato il bordo dell\'isola!', err: true });
+          steps.push({ x: cx, y: cy, msg: 'âš ï¸ Byte ha urtato il bordo dell\'isola!', err: true });
           break;
         }
         steps.push({ x: cx, y: cy, dir: cdir, msg: `Spostamento avanti a (${cx}, ${cy})` });
@@ -555,9 +555,9 @@ struct MiaAppCustom: View {
         const found = cGems.find((g: any) => g.x === cx && g.y === cy && !g.collected);
         if (found) {
           found.collected = true;
-          steps.push({ x: cx, y: cy, dir: cdir, msg: '✨ Gemma RAGGIUNTA e RACCOLTA!', collect: true });
+          steps.push({ x: cx, y: cy, dir: cdir, msg: 'âœ¨ Gemma RAGGIUNTA e RACCOLTA!', collect: true });
         } else {
-          steps.push({ x: cx, y: cy, msg: '⚠️ Nessuna gemma da raccogliere in questa casella!', err: true });
+          steps.push({ x: cx, y: cy, msg: 'âš ï¸ Nessuna gemma da raccogliere in questa casella!', err: true });
           break;
         }
       }
@@ -570,7 +570,7 @@ struct MiaAppCustom: View {
         setIsPuzzleSimulating(false);
         const win = cGems.every((g: any) => g.collected);
         if (win) {
-          setPuzzleConsole(prev => [...prev, '🎉 FANTASTICO! LIVELLO SUPERATO CON SUCCESSO!']);
+          setPuzzleConsole(prev => [...prev, 'ðŸŽ‰ FANTASTICO! LIVELLO SUPERATO CON SUCCESSO!']);
           onNotification("Vittoria Swift!", `Hai superato "${currentLevel.title}"!`);
         } else {
           setPuzzleError("Devi raccogliere tutte le gemme per finire il livello!");
@@ -647,7 +647,7 @@ struct MiaAppCustom: View {
               {isPizza ? (
                 <div className="w-full space-y-2.5 text-left">
                   <div className="text-center">
-                    <h3 className="text-xs sm:text-sm font-extrabold text-orange-400">🍕 Pizzeria Bella Napoli</h3>
+                    <h3 className="text-xs sm:text-sm font-extrabold text-orange-400">ðŸ• Pizzeria Bella Napoli</h3>
                     <p className="text-[10px] text-zinc-400">Menu & Cassa SwiftUI</p>
                   </div>
 
@@ -656,8 +656,8 @@ struct MiaAppCustom: View {
                     {/* Margherita */}
                     <div className="bg-zinc-900 border border-zinc-800 p-2 rounded-xl flex items-center justify-between">
                       <div>
-                        <p className="text-[11px] sm:text-xs font-bold text-white">Margherita (8€)</p>
-                        <p className="text-[10px] text-zinc-400">Quantità: {parsedStateVars.margherita || 0}</p>
+                        <p className="text-[11px] sm:text-xs font-bold text-white">Margherita (8â‚¬)</p>
+                        <p className="text-[10px] text-zinc-400">QuantitÃ : {parsedStateVars.margherita || 0}</p>
                       </div>
                       <div className="flex items-center space-x-1">
                         <button
@@ -678,8 +678,8 @@ struct MiaAppCustom: View {
                     {/* Diavola */}
                     <div className="bg-zinc-900 border border-zinc-800 p-2 rounded-xl flex items-center justify-between">
                       <div>
-                        <p className="text-[11px] sm:text-xs font-bold text-white">🌶️ Diavola (10€)</p>
-                        <p className="text-[10px] text-zinc-400">Quantità: {parsedStateVars.diavola || 0}</p>
+                        <p className="text-[11px] sm:text-xs font-bold text-white">ðŸŒ¶ï¸ Diavola (10â‚¬)</p>
+                        <p className="text-[10px] text-zinc-400">QuantitÃ : {parsedStateVars.diavola || 0}</p>
                       </div>
                       <div className="flex items-center space-x-1">
                         <button
@@ -700,8 +700,8 @@ struct MiaAppCustom: View {
                     {/* Quattro Formaggi */}
                     <div className="bg-zinc-900 border border-zinc-800 p-2 rounded-xl flex items-center justify-between">
                       <div>
-                        <p className="text-[11px] sm:text-xs font-bold text-white">🧀 4 Formaggi (11€)</p>
-                        <p className="text-[10px] text-zinc-400">Quantità: {parsedStateVars.quattroFormaggi || 0}</p>
+                        <p className="text-[11px] sm:text-xs font-bold text-white">ðŸ§€ 4 Formaggi (11â‚¬)</p>
+                        <p className="text-[10px] text-zinc-400">QuantitÃ : {parsedStateVars.quattroFormaggi || 0}</p>
                       </div>
                       <div className="flex items-center space-x-1">
                         <button
@@ -724,7 +724,7 @@ struct MiaAppCustom: View {
                   <div className="bg-orange-500/10 border border-orange-500/30 p-2 rounded-xl text-center">
                     <span className="text-[9px] text-zinc-400 font-bold uppercase">Totale Calcolato</span>
                     <p className="text-lg sm:text-xl font-black text-amber-300">
-                      {(parsedStateVars.margherita || 0) * 8 + (parsedStateVars.diavola || 0) * 10 + (parsedStateVars.quattroFormaggi || 0) * 11} €
+                      {(parsedStateVars.margherita || 0) * 8 + (parsedStateVars.diavola || 0) * 10 + (parsedStateVars.quattroFormaggi || 0) * 11} â‚¬
                     </p>
                   </div>
 
@@ -786,7 +786,7 @@ struct MiaAppCustom: View {
                         : 'bg-zinc-900 border-zinc-800 text-zinc-400'
                     }`}
                   >
-                    {parsedStateVars.isLiked ? '❤️ Preferito' : '🤍 Aggiungi ai Preferiti'}
+                    {parsedStateVars.isLiked ? 'â¤ï¸ Preferito' : 'ðŸ¤ Aggiungi ai Preferiti'}
                   </button>
                 </div>
               ) : isSocial ? (
@@ -796,7 +796,7 @@ struct MiaAppCustom: View {
                   <div className="flex items-center justify-between bg-zinc-900 p-2 rounded-xl border border-zinc-800">
                     <div className="flex items-center space-x-2">
                       <div className="w-6 h-6 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 flex items-center justify-center text-white text-[10px] font-bold">
-                        👤
+                        ðŸ‘¤
                       </div>
                       <span className="text-[11px] font-bold text-white truncate max-w-[110px]">marco_rossi</span>
                     </div>
@@ -813,7 +813,7 @@ struct MiaAppCustom: View {
 
                   {/* Post Image Placeholder */}
                   <div className="h-28 sm:h-32 rounded-xl bg-gradient-to-br from-amber-600 to-orange-700 p-2.5 flex flex-col justify-end text-white shadow">
-                    <span className="text-[11px] font-bold">🌅 Tramonto a Capri</span>
+                    <span className="text-[11px] font-bold">ðŸŒ… Tramonto a Capri</span>
                     <span className="text-[9px] text-amber-200">Scattato da iPhone 16 Pro</span>
                   </div>
 
@@ -827,7 +827,7 @@ struct MiaAppCustom: View {
                       }}
                       className="px-2.5 py-1 bg-zinc-900 border border-zinc-800 rounded-xl text-[11px] font-bold text-rose-400 flex items-center space-x-1"
                     >
-                      <span>{parsedStateVars.isLiked ? '❤️' : '🤍'}</span>
+                      <span>{parsedStateVars.isLiked ? 'â¤ï¸' : 'ðŸ¤'}</span>
                       <span>{parsedStateVars.likes || 142}</span>
                     </button>
 
@@ -835,13 +835,14 @@ struct MiaAppCustom: View {
                       onClick={() => updateStateVar('commentsCount', (c: number) => (c || 18) + 1)}
                       className="px-2.5 py-1 bg-zinc-900 border border-zinc-800 rounded-xl text-[11px] font-bold text-cyan-400"
                     >
-                      💬 {parsedStateVars.commentsCount || 18} Commenti
+                      ðŸ’¬ {parsedStateVars.commentsCount || 18} Commenti
                     </button>
                   </div>
                 </div>
               ) : (
                 /* APP 4: SCRATCH / DYNAMIC SWIFTUI APP */
                 (() => {
+                  // Extract Text("...") and Button("...") elements from user editorCode
                   const textList: string[] = [];
                   const buttonList: string[] = [];
 
@@ -849,9 +850,11 @@ struct MiaAppCustom: View {
                   codeLines.forEach(l => {
                     const lineStr = l.trim();
                     
+                    // Match Text("...") or Text(varName)
                     const tm = lineStr.match(/Text\s*\(\s*"([^"]+)"\s*\)/) || lineStr.match(/Text\s*\(\s*([a-zA-Z0-9_]+)\s*\)/);
                     if (tm) {
                       let raw = tm[1];
+                      // Interpolate \(varName)
                       raw = raw.replace(/\\\((\w+)\)/g, (_, vName) => {
                         return parsedStateVars[vName] !== undefined ? String(parsedStateVars[vName]) : `\\(${vName})`;
                       });
@@ -861,6 +864,7 @@ struct MiaAppCustom: View {
                       textList.push(raw);
                     }
 
+                    // Match Button("...")
                     const bm = lineStr.match(/Button\s*\(\s*"([^"]+)"\s*\)/);
                     if (bm) {
                       let btnLabel = bm[1];
@@ -873,6 +877,7 @@ struct MiaAppCustom: View {
 
                   return (
                     <div className="w-full space-y-2.5 text-center">
+                      {/* Parsed SwiftUI Text Views */}
                       {textList.length > 0 ? (
                         <div className="space-y-1.5 bg-zinc-900/90 p-3 rounded-2xl border border-zinc-800 shadow">
                           {textList.map((tVal, idx) => (
@@ -886,10 +891,11 @@ struct MiaAppCustom: View {
                         </div>
                       ) : (
                         <div className="p-2.5 bg-zinc-900/80 rounded-2xl border border-zinc-800 text-[11px] text-zinc-400">
-                          📱 Scrivi `Text("...")` o `Button("...")` nell'editor per vedere la tua UI.
+                          ðŸ“± Scrivi `Text("...")` o `Button("...")` nell'editor per vedere la tua UI.
                         </div>
                       )}
 
+                      {/* Parsed SwiftUI Buttons */}
                       {buttonList.length > 0 && (
                         <div className="space-y-1.5 pt-1">
                           {buttonList.map((bLabel, idx) => (
@@ -904,7 +910,7 @@ struct MiaAppCustom: View {
                                   } else if (typeof val === 'boolean') {
                                     updateStateVar(vKey, (v: boolean) => !v);
                                   } else if (typeof val === 'string') {
-                                    updateStateVar(vKey, "Azione eseguita nell'iPhone! 🚀");
+                                    updateStateVar(vKey, "Azione eseguita nell'iPhone! ðŸš€");
                                   }
                                 });
                                 setEditorStdout(prev => [...prev, `[iPhone Touch] Premuto pulsante '${bLabel}'`]);
@@ -917,6 +923,7 @@ struct MiaAppCustom: View {
                         </div>
                       )}
 
+                      {/* State Variables Inspector */}
                       {Object.keys(parsedStateVars).length > 0 && (
                         <div className="mt-2 p-2 bg-zinc-950 border border-zinc-800/80 rounded-xl text-left">
                           <span className="text-[9px] uppercase font-bold text-orange-400 tracking-wider block mb-1">
@@ -939,6 +946,7 @@ struct MiaAppCustom: View {
 
             </div>
 
+            {/* iPhone Home Indicator */}
             <div className="w-24 sm:w-28 h-1 bg-zinc-600 rounded-full mx-auto mt-1 shrink-0"></div>
 
           </div>
@@ -951,8 +959,12 @@ struct MiaAppCustom: View {
   return (
     <div id="app-swift-playgrounds" className="flex flex-col h-full w-full min-h-0 bg-zinc-950 text-zinc-100 font-sans overflow-hidden select-none">
       
-      {/* TOP BAR */}
+      {/* ----------------------------------------------------------------- */}
+      {/* TOP BAR - COMPACT RESPONSIVE TABS FOR MOBILE & DESKTOP              */}
+      {/* ----------------------------------------------------------------- */}
       <header className="bg-zinc-900 border-b border-zinc-800 px-2 sm:px-3 py-1.5 sm:py-2 flex flex-col sm:flex-row items-center justify-between shrink-0 gap-1.5 z-10">
+        
+        {/* App Title */}
         <div className="flex items-center space-x-2 w-full sm:w-auto justify-between sm:justify-start">
           <div className="flex items-center space-x-2">
             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-orange-600/30 border border-orange-500/50 flex items-center justify-center text-orange-400 font-bold shrink-0">
@@ -965,6 +977,7 @@ struct MiaAppCustom: View {
           </div>
         </div>
 
+        {/* MAIN TABS (Mobile horizontally scrollable / compact) */}
         <div className="flex w-full sm:w-auto bg-zinc-950 p-1 rounded-xl border border-zinc-800 space-x-1 text-[11px] sm:text-xs overflow-x-auto no-scrollbar shrink-0 justify-center">
           <button
             onClick={() => setMainTab('code')}
@@ -973,7 +986,7 @@ struct MiaAppCustom: View {
             }`}
           >
             <Code className="w-3.5 h-3.5" />
-            <span>💻 Codice Swift</span>
+            <span>ðŸ’» Codice Swift</span>
           </button>
 
           <button
@@ -983,7 +996,7 @@ struct MiaAppCustom: View {
             }`}
           >
             <Smartphone className="w-3.5 h-3.5" />
-            <span>📱 Simulatore iPhone</span>
+            <span>ðŸ“± Simulatore iPhone</span>
           </button>
 
           <button
@@ -993,16 +1006,22 @@ struct MiaAppCustom: View {
             }`}
           >
             <Award className="w-3.5 h-3.5" />
-            <span>🎮 Gioco Byte</span>
+            <span>ðŸŽ® Gioco Byte</span>
           </button>
         </div>
+
       </header>
 
-      {/* TAB 1: SWIFT CODE EDITOR */}
+      {/* ========================================================================= */}
+      {/* TAB 1: SWIFT CODE EDITOR (MAXIMIZED & CLEAR ON MOBILE)                   */}
+      {/* ========================================================================= */}
       {mainTab === 'code' && (
         <div className="flex-1 min-h-0 flex flex-col bg-zinc-950 overflow-hidden">
           
+          {/* Sub-Header Toolbar */}
           <div className="p-2 sm:p-2.5 bg-zinc-900 border-b border-zinc-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 shrink-0">
+            
+            {/* Template Selector & Scratch Button */}
             <div className="flex items-center justify-between sm:justify-start space-x-1.5 sm:space-x-2 w-full sm:w-auto">
               <span className="text-[10px] sm:text-xs font-bold text-orange-400 uppercase tracking-wider shrink-0">App:</span>
               <select
@@ -1022,18 +1041,20 @@ struct MiaAppCustom: View {
                 className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 flex items-center space-x-1 transition shadow shrink-0 active:scale-95"
               >
                 <Edit3 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                <span>✍️ Scrivi da Zero</span>
+                <span>âœï¸ Scrivi da Zero</span>
               </button>
             </div>
 
+            {/* Layout Toggle & Run Code */}
             <div className="flex items-center justify-between sm:justify-end space-x-2 w-full sm:w-auto">
+              
               <div className="flex bg-zinc-950 p-1 rounded-lg border border-zinc-800 text-[10px] sm:text-[11px] font-bold">
                 <button
                   onClick={() => setEditorLayout('full')}
                   className={`px-2 py-1 rounded-md flex items-center space-x-1 ${
                     editorLayout === 'full' ? 'bg-zinc-800 text-amber-400' : 'text-zinc-400 hover:text-white'
                   }`}
-                  title="Editor Soltanto"
+                  title="Editor Soltanto (Massima Visuale)"
                 >
                   <Monitor className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   <span>Editor Maxi</span>
@@ -1043,7 +1064,7 @@ struct MiaAppCustom: View {
                   className={`px-2 py-1 rounded-md flex items-center space-x-1 ${
                     editorLayout === 'split' ? 'bg-zinc-800 text-amber-400' : 'text-zinc-400 hover:text-white'
                   }`}
-                  title="Editor + iPhone"
+                  title="Editor + iPhone Affiancati"
                 >
                   <Layout className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   <span>Schermo Diviso</span>
@@ -1056,9 +1077,10 @@ struct MiaAppCustom: View {
                 className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-black bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 text-white flex items-center space-x-1 sm:space-x-1.5 shadow-lg active:scale-95 transition disabled:opacity-50 shrink-0"
               >
                 <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" />
-                <span>▶️ ESEGUI CODICE</span>
+                <span>â–¶ï¸ ESEGUI CODICE</span>
               </button>
             </div>
+
           </div>
 
           {/* QUICK SWIFT SNIPPET TOOLBAR */}
@@ -1102,53 +1124,23 @@ struct MiaAppCustom: View {
             </button>
           </div>
 
-          {/* 🔍 PANNELLO CONTROLLO SINTASSI IN TEMPO REALE (SEMPRE VISIBILE) */}
-          {(() => {
-            const warnings = (() => {
-              const list: string[] = [];
-              const openBraces = (editorCode.match(/\{/g) || []).length;
-              const closeBraces = (editorCode.match(/\}/g) || []).length;
-              if (openBraces > closeBraces) list.push(`⚠️ Manca ${openBraces - closeBraces} parentesi graffa di chiusura '}'`);
-              else if (closeBraces > openBraces) list.push(`⚠️ C'è ${closeBraces - openBraces} parentesi graffa '}' in più`);
-              
-              const openParens = (editorCode.match(/\(/g) || []).length;
-              const closeParens = (editorCode.match(/\)/g) || []).length;
-              if (openParens !== closeParens) list.push(`⚠️ Le parentesi tonde '(' e ')' non sono bilanciate`);
-
-              if (editorCode.includes('struct') && !editorCode.includes('var body: some View')) {
-                list.push(`💡 Manca la proprietà obbligatoria 'var body: some View'`);
-              }
-              if (editorCode.includes('state ') && !editorCode.includes('@State')) {
-                list.push(`💡 Hai scritto 'state' in minuscolo, usa '@State'`);
-              }
-              return list;
-            })();
-
-            if (warnings.length === 0) return null;
-
-            return (
-              <div className="mx-2 my-1.5 p-2 bg-amber-950/90 border border-amber-600/60 rounded-xl text-amber-200 text-xs font-mono shrink-0 space-y-1 shadow-lg">
-                <span className="font-bold text-amber-300">🔍 Controllo Sintassi Swift:</span>
-                {warnings.map((w, i) => (
-                  <div key={i} className="text-[11px]">{w}</div>
-                ))}
-              </div>
-            );
-          })()}
-
-          {/* MAIN BODY: CODE TEXTAREA */}
+          {/* MAIN BODY: CODE TEXTAREA WITH HIGH-CONTRAST LINE NUMBERS */}
           <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden bg-zinc-950">
+            
+            {/* HUGE HIGH-CONTRAST CODE AREA */}
             <div className={`flex-1 min-h-0 flex flex-col p-1.5 sm:p-2 bg-zinc-950 overflow-hidden ${
               editorLayout === 'split' ? 'w-full md:w-3/5' : 'w-full'
             }`}>
               <div className="w-full h-full flex-1 min-h-0 flex rounded-2xl border-2 border-orange-500/50 focus-within:border-orange-400 bg-zinc-950 overflow-hidden shadow-2xl relative">
                 
+                {/* Line Numbers */}
                 <div className="w-10 sm:w-11 bg-zinc-900/90 border-r border-zinc-800 flex flex-col items-center py-3 text-right pr-2 text-xs font-mono text-orange-400 font-bold shrink-0 select-none overflow-hidden">
                   {Array.from({ length: Math.max(50, editorCode.split('\n').length + 10) }).map((_, i) => (
                     <div key={i} className="leading-6">{i + 1}</div>
                   ))}
                 </div>
 
+                {/* Textarea Field */}
                 <textarea
                   value={editorCode}
                   onChange={(e) => setEditorCode(e.target.value)}
@@ -1156,23 +1148,28 @@ struct MiaAppCustom: View {
                   className="w-full h-full p-3 bg-transparent font-mono text-sm sm:text-base text-emerald-300 font-medium outline-none resize-none leading-6 border-0 focus:ring-0 selection:bg-orange-500/40 whitespace-pre overflow-x-auto"
                   placeholder="// Scrivi qui il tuo codice Swift o SwiftUI liberamente..."
                 />
+
               </div>
             </div>
 
+            {/* OPTIONAL SPLIT PREVIEW */}
             {editorLayout === 'split' && (
               <div className="hidden md:flex w-2/5 min-h-0 border-l border-zinc-800 bg-zinc-900/60 overflow-hidden">
                 {renderIPhoneSimulator()}
               </div>
             )}
+
           </div>
 
+          {/* Error Banner */}
           {editorError && (
             <div className="mx-2 mb-1 p-2 bg-red-950 border border-red-800 text-red-200 text-xs flex items-center justify-between font-mono rounded-xl shrink-0">
-              <span>❌ {editorError}</span>
+              <span>âŒ {editorError}</span>
               <button onClick={() => setEditorError(null)} className="text-red-400 font-bold ml-2">Chiudi</button>
             </div>
           )}
 
+          {/* Console stdout Drawer */}
           <div className="h-24 sm:h-28 border-t border-zinc-800 bg-zinc-900/90 p-2 flex flex-col font-mono text-xs shrink-0">
             <div className="flex items-center justify-between text-[10px] text-zinc-400 uppercase font-bold mb-1">
               <span className="flex items-center space-x-1">
@@ -1187,7 +1184,7 @@ struct MiaAppCustom: View {
                 <div 
                   key={idx}
                   className={
-                    log.includes('❌') ? 'text-red-400 font-bold' :
+                    log.includes('âŒ') ? 'text-red-400 font-bold' :
                     log.includes('[iPhone Touch]') ? 'text-amber-400 font-semibold' :
                     log.includes('successo') ? 'text-emerald-400 font-bold' : 'text-zinc-300'
                   }
@@ -1201,17 +1198,24 @@ struct MiaAppCustom: View {
         </div>
       )}
 
-      {/* TAB 2: PREVIEW */}
+      {/* ========================================================================= */}
+      {/* TAB 2: FULL-SCREEN INTERACTIVE IPHONE SIMULATOR                           */}
+      {/* ========================================================================= */}
       {mainTab === 'preview' && (
         <div className="flex-1 min-h-0 flex bg-zinc-900 overflow-hidden">
           {renderIPhoneSimulator()}
         </div>
       )}
 
-      {/* TAB 3: PUZZLES */}
+      {/* ========================================================================= */}
+      {/* TAB 3: BYTE ISLAND PUZZLE GAME (FULLY RESPONSIVE FOR MOBILE)              */}
+      {/* ========================================================================= */}
       {mainTab === 'puzzles' && (
         <div className="flex-1 min-h-0 flex flex-col bg-zinc-950 overflow-hidden">
+          
+          {/* Mobile View Sub-Header Toggles */}
           <div className="p-2 bg-zinc-900 border-b border-zinc-800 flex flex-wrap items-center justify-between gap-2 shrink-0">
+            {/* Level Selector */}
             <div className="flex items-center space-x-1.5 overflow-x-auto no-scrollbar">
               {LEVELS.map((lvl, index) => (
                 <button
@@ -1228,6 +1232,7 @@ struct MiaAppCustom: View {
               ))}
             </div>
 
+            {/* Sub-view toggle for mobile screen */}
             <div className="flex bg-zinc-950 p-1 rounded-lg border border-zinc-800 text-[10px] sm:text-xs font-bold">
               <button
                 onClick={() => setByteSubTab('code')}
@@ -1236,7 +1241,7 @@ struct MiaAppCustom: View {
                 }`}
               >
                 <Code className="w-3 h-3" />
-                <span>📝 Codice Byte</span>
+                <span>ðŸ“ Codice Byte</span>
               </button>
               <button
                 onClick={() => setByteSubTab('island')}
@@ -1245,7 +1250,7 @@ struct MiaAppCustom: View {
                 }`}
               >
                 <Award className="w-3 h-3" />
-                <span>🎮 Isola</span>
+                <span>ðŸŽ® Isola</span>
               </button>
               <button
                 onClick={() => setByteSubTab('split')}
@@ -1259,14 +1264,20 @@ struct MiaAppCustom: View {
             </div>
           </div>
 
+          {/* Level Objective */}
           <div className="px-3 py-1.5 bg-zinc-900/60 border-b border-zinc-800 text-center shrink-0">
             <h4 className="text-xs font-bold text-orange-400">{currentLevel.title}</h4>
             <p className="text-[11px] text-zinc-300 mt-0.5">{currentLevel.description}</p>
           </div>
 
+          {/* PUZZLE CONTENT AREA */}
           <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
+            
+            {/* ISLAND GRID VIEW */}
             {(byteSubTab === 'island' || byteSubTab === 'split') && (
               <div className="flex-1 p-3 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-zinc-800 bg-zinc-950 overflow-y-auto min-h-0">
+                
+                {/* 5x5 Island Grid */}
                 <div className="grid grid-cols-5 gap-1.5 sm:gap-2 bg-gradient-to-b from-emerald-950/40 to-zinc-900 p-2.5 sm:p-3.5 rounded-2xl border border-emerald-800/40 shadow-2xl my-auto">
                   {Array.from({ length: 25 }).map((_, idx) => {
                     const gx = idx % 5;
@@ -1281,11 +1292,11 @@ struct MiaAppCustom: View {
                       >
                         {isByteHere && (
                           <span className="animate-bounce text-xl sm:text-2xl">
-                            {byteDirection === 'E' ? '👾➔' : byteDirection === 'S' ? '👾👇' : byteDirection === 'W' ? '👈👾' : '👾👆'}
+                            {byteDirection === 'E' ? 'ðŸ‘¾âž”' : byteDirection === 'S' ? 'ðŸ‘¾ðŸ‘‡' : byteDirection === 'W' ? 'ðŸ‘ˆðŸ‘¾' : 'ðŸ‘¾ðŸ‘†'}
                           </span>
                         )}
                         {gem && !gem.collected && !isByteHere && (
-                          <span className="animate-pulse text-xl sm:text-2xl">💎</span>
+                          <span className="animate-pulse text-xl sm:text-2xl">ðŸ’Ž</span>
                         )}
                       </div>
                     );
@@ -1294,17 +1305,20 @@ struct MiaAppCustom: View {
 
                 {puzzleError && (
                   <div className="mt-2 p-2 bg-red-950 text-red-200 text-xs rounded-xl border border-red-800 font-bold text-center">
-                    ⚠️ {puzzleError}
+                    âš ï¸ {puzzleError}
                   </div>
                 )}
+
               </div>
             )}
 
+            {/* BYTE CODE EDITOR VIEW (WITH LINE NUMBERS & BRIGHT TEXT) */}
             {(byteSubTab === 'code' || byteSubTab === 'split') && (
               <div className="flex-1 p-3 bg-zinc-900 flex flex-col space-y-2 min-h-0 overflow-y-auto">
+                
                 <div className="flex items-center justify-between shrink-0">
                   <h4 className="text-xs font-black text-orange-400 uppercase tracking-wider">
-                    📝 Codice Istruzioni Swift Byte:
+                    ðŸ“ Codice Istruzioni Swift Byte:
                   </h4>
 
                   <button
@@ -1316,6 +1330,7 @@ struct MiaAppCustom: View {
                   </button>
                 </div>
 
+                {/* Quick Command Insertion Buttons */}
                 <div className="p-2 bg-zinc-950 rounded-xl border border-zinc-800 space-y-1 shrink-0">
                   <span className="text-[10px] text-zinc-500 font-bold uppercase">Inserisci Comandi Rapidi:</span>
                   <div className="flex flex-wrap gap-1.5">
@@ -1343,10 +1358,18 @@ struct MiaAppCustom: View {
                     >
                       + raccogliGemma()
                     </button>
+                    <button
+                      onClick={() => insertByteCmd('for i in 1...3 {\n    muoviAvanti()\n    raccogliGemma()\n}')}
+                      className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-orange-300 text-xs font-mono rounded-lg border border-zinc-700 font-bold"
+                    >
+                      + for loop
+                    </button>
                   </div>
                 </div>
 
+                {/* BYTE HIGH-CONTRAST EDITOR WITH LINE NUMBERS */}
                 <div className="flex-1 min-h-[160px] flex rounded-xl border-2 border-orange-500/40 bg-zinc-950 overflow-hidden shadow-lg shrink-0">
+                  {/* Line numbers */}
                   <div className="w-9 bg-zinc-900 border-r border-zinc-800 flex flex-col items-center py-2.5 text-right pr-1.5 text-xs font-mono text-orange-400 font-bold shrink-0 select-none">
                     {Array.from({ length: Math.max(15, puzzleCode.split('\n').length + 3) }).map((_, i) => (
                       <div key={i} className="leading-6">{i + 1}</div>
@@ -1370,24 +1393,30 @@ struct MiaAppCustom: View {
                   disabled={isPuzzleSimulating}
                   className="w-full py-2.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 text-white font-black text-xs rounded-xl shadow-lg active:scale-98 transition shrink-0"
                 >
-                  ▶️ ESEGUI CODICE BYTE
+                  â–¶ï¸ ESEGUI CODICE BYTE
                 </button>
 
+                {/* Byte Log Output */}
                 <div className="bg-zinc-950 p-2.5 rounded-xl border border-zinc-800 font-mono text-xs text-zinc-400 overflow-y-auto space-y-1 h-20 shrink-0">
                   <span className="text-[10px] uppercase font-bold text-zinc-500">Log Byte:</span>
                   {puzzleConsole.map((c, i) => (
                     <div key={i} className="text-zinc-300">{c}</div>
                   ))}
                 </div>
+
               </div>
             )}
+
           </div>
+
         </div>
       )}
+
     </div>
   );
 }
 
+// Pause icon helper component
 function PauseIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
