@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Upload, Download, RotateCw, RefreshCw, Sliders, 
-  Palette, Grid, Image as ImageIcon, Smile, Type, Check, Trash, Undo,
-  Camera, Move, Plus, Minus, Trash2, X, Layers, RotateCcw
+  Palette, Grid, Image as ImageIcon, Smile, Check, Trash, Undo,
+  Camera, Plus, Minus, Trash2, RotateCcw, Save, Sparkles
 } from 'lucide-react';
 
 interface AppPhotoEditorProps {
@@ -43,18 +43,29 @@ const SAMPLE_PHOTOS = [
   }
 ];
 
-// Presets for filter algorithms (using clean, standard CSS filters)
-const FILTER_PRESETS = [
-  { name: 'Originale', filterString: '' },
-  { name: 'Vivido (Chrome)', filterString: 'saturate(1.8) contrast(1.15) brightness(1.05)' },
-  { name: 'Noir (Contrasto)', filterString: 'grayscale(1) contrast(1.6) brightness(0.95)' },
-  { name: 'Drammatico', filterString: 'hue-rotate(15deg) saturate(1.3) brightness(0.9) contrast(1.2)' },
-  { name: 'Vintage (Sepia)', filterString: 'sepia(0.85) contrast(0.95) saturate(1.2) brightness(1.02)' },
-  { name: 'Bianco e Nero', filterString: 'grayscale(1) brightness(1.1)' },
-  { name: 'Caldo Sottile', filterString: 'sepia(0.3) saturate(1.4) hue-rotate(-10deg) brightness(1.05)' },
-  { name: 'Freddo Glaciale', filterString: 'saturate(0.9) hue-rotate(25deg) brightness(1.05) contrast(1.05)' },
-  { name: 'Smeraldo', filterString: 'hue-rotate(80deg) saturate(1.3) contrast(1.1)' },
-  { name: 'Sogno Rosa', filterString: 'hue-rotate(-40deg) saturate(1.4) brightness(1.1)' }
+interface FilterPreset {
+  name: string;
+  brightness: number;
+  contrast: number;
+  saturate: number;
+  grayscale: number;
+  sepia: number;
+  hueRotate: number;
+  filterString: string;
+}
+
+// Presets for filter algorithms (using clean, standard CSS & canvas filters)
+const FILTER_PRESETS: FilterPreset[] = [
+  { name: 'Originale', brightness: 1, contrast: 1, saturate: 1, grayscale: 0, sepia: 0, hueRotate: 0, filterString: '' },
+  { name: 'Vivido (Chrome)', brightness: 1.05, contrast: 1.15, saturate: 1.8, grayscale: 0, sepia: 0, hueRotate: 0, filterString: 'saturate(1.8) contrast(1.15) brightness(1.05)' },
+  { name: 'Noir (Contrasto)', brightness: 0.95, contrast: 1.6, saturate: 0, grayscale: 1, sepia: 0, hueRotate: 0, filterString: 'grayscale(1) contrast(1.6) brightness(0.95)' },
+  { name: 'Drammatico', brightness: 0.9, contrast: 1.2, saturate: 1.3, grayscale: 0, sepia: 0, hueRotate: 15, filterString: 'hue-rotate(15deg) saturate(1.3) brightness(0.9) contrast(1.2)' },
+  { name: 'Vintage (Sepia)', brightness: 1.02, contrast: 0.95, saturate: 1.2, grayscale: 0, sepia: 0.85, hueRotate: 0, filterString: 'sepia(0.85) contrast(0.95) saturate(1.2) brightness(1.02)' },
+  { name: 'Bianco e Nero', brightness: 1.1, contrast: 1, saturate: 0, grayscale: 1, sepia: 0, hueRotate: 0, filterString: 'grayscale(1) brightness(1.1)' },
+  { name: 'Caldo Sottile', brightness: 1.05, contrast: 1, saturate: 1.4, grayscale: 0, sepia: 0.3, hueRotate: -10, filterString: 'sepia(0.3) saturate(1.4) hue-rotate(-10deg) brightness(1.05)' },
+  { name: 'Freddo Glaciale', brightness: 1.05, contrast: 1.05, saturate: 0.9, grayscale: 0, sepia: 0, hueRotate: 25, filterString: 'saturate(0.9) hue-rotate(25deg) brightness(1.05) contrast(1.05)' },
+  { name: 'Smeraldo', brightness: 1, contrast: 1.1, saturate: 1.3, grayscale: 0, sepia: 0, hueRotate: 80, filterString: 'hue-rotate(80deg) saturate(1.3) contrast(1.1)' },
+  { name: 'Sogno Rosa', brightness: 1.1, contrast: 1, saturate: 1.4, grayscale: 0, sepia: 0, hueRotate: -40, filterString: 'hue-rotate(-40deg) saturate(1.4) brightness(1.1)' }
 ];
 
 const EMOJI_STICKERS = ['😀', '🔥', '⭐️', '🎨', '🎉', '💡', '❤️', '💼', '🚀', '🎯', '🍕', '🇮🇹', '🌸', '😎', '👑', '🌈'];
@@ -69,10 +80,44 @@ interface OverlayItem {
   color?: string; // text color
 }
 
+// Compress data URL helper so images save safely in memory and localStorage without quota errors
+const compressImageDataUrl = (dataUrl: string, maxWidth = 1000, quality = 0.85): Promise<string> => {
+  return new Promise((resolve) => {
+    if (!dataUrl.startsWith('data:image')) {
+      resolve(dataUrl);
+      return;
+    }
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      let width = img.naturalWidth || img.width || 800;
+      let height = img.naturalHeight || img.height || 600;
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, width, height);
+        try {
+          const compressed = canvas.toDataURL('image/jpeg', quality);
+          resolve(compressed);
+          return;
+        } catch (e) {}
+      }
+      resolve(dataUrl);
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+};
+
 export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) {
   const [activeTab, setActiveTab] = useState<'gallery' | 'presets' | 'sliders' | 'draw' | 'stickers'>('gallery');
-  const [selectedPhotoUrl, setSelectedPhotoUrl] = useState<string>(SAMPLE_PHOTOS[0].url);
-
+  
   // Local gallery list
   const [gallery, setGallery] = useState<{ id: string; name: string; url: string; date: string; isUserSaved?: boolean }[]>(() => {
     const defaultList = SAMPLE_PHOTOS.map(p => ({
@@ -93,7 +138,9 @@ export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) 
     }
     return defaultList;
   });
-  
+
+  const [selectedPhotoUrl, setSelectedPhotoUrl] = useState<string>(gallery[0]?.url || SAMPLE_PHOTOS[0].url);
+
   // Basic filter slider variables
   const [brightness, setBrightness] = useState<number>(100);
   const [contrast, setContrast] = useState<number>(100);
@@ -159,34 +206,44 @@ export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) 
     setSepia(0);
     setBlur(0);
     setActivePresetIndex(0);
-    onNotification("Foto Studio", "Filtri e regolazioni ripristinati!");
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const saveGalleryToStorage = (items: { id: string; name: string; url: string; date: string; isUserSaved?: boolean }[]) => {
+    try {
+      const userItems = items.filter(i => i.isUserSaved);
+      localStorage.setItem('scriba_gallery_v1', JSON.stringify(userItems));
+    } catch (e) {
+      console.warn("Storage quota exceeded", e);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         if (event.target?.result) {
-          const dataUrl = event.target.result as string;
-          setSelectedPhotoUrl(dataUrl);
+          const rawDataUrl = event.target.result as string;
+          // Compress dataUrl so gallery and localStorage operate smoothly
+          const compressedUrl = await compressImageDataUrl(rawDataUrl, 1000, 0.85);
 
-          // Add to gallery state
+          setSelectedPhotoUrl(compressedUrl);
+
           const newUploadedItem = {
             id: 'gallery_' + Date.now(),
-            name: file.name.substring(0, 15) || `Caricata`,
-            url: dataUrl,
-            date: new Date().toLocaleDateString('it-IT', {hour: '2-digit', minute: '2-digit'}),
+            name: file.name.substring(0, 18) || `Foto Caricata`,
+            url: compressedUrl,
+            date: new Date().toLocaleDateString('it-IT', { hour: '2-digit', minute: '2-digit' }),
             isUserSaved: true
           };
 
           setGallery(prev => {
             const updated = [newUploadedItem, ...prev];
-            localStorage.setItem('scriba_gallery_v1', JSON.stringify(updated.filter(item => item.isUserSaved)));
+            saveGalleryToStorage(updated);
             return updated;
           });
 
-          onNotification("Foto Studio", "Foto aggiunta alla cartella!");
+          onNotification("Foto Studio", "Foto importata e aggiunta alla galleria!");
         }
       };
       reader.readAsDataURL(file);
@@ -300,9 +357,8 @@ export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) 
     onNotification("Disegno", "Tratto annullato");
   };
 
-  // Adding sticker overlay positioned centered (x: 50%, y: 50%)
+  // Adding sticker overlay positioned centered
   const addSticker = (emoji: string) => {
-    // Offset slightly if previous items exist so they don't stack directly on top
     const offset = (overlays.length % 5) * 4;
     const newOverlay: OverlayItem = {
       id: 'overlay_' + Date.now() + Math.random().toString(36).substring(2, 5),
@@ -315,10 +371,10 @@ export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) 
     setOverlays(prev => [...prev, newOverlay]);
     setSelectedOverlayId(newOverlay.id);
     setActiveTab('stickers');
-    onNotification("Foto Studio", "Sticker aggiunto! Puoi trascinarlo o ridimensionarlo.");
+    onNotification("Foto Studio", "Sticker aggiunto! Trascinalo sulla foto.");
   };
 
-  // Adding text overlay positioned centered (x: 50%, y: 50%)
+  // Adding text overlay positioned centered
   const addTextOverlay = () => {
     if (!typingText.trim()) return;
     const offset = (overlays.length % 5) * 4;
@@ -334,7 +390,7 @@ export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) 
     setOverlays(prev => [...prev, newOverlay]);
     setSelectedOverlayId(newOverlay.id);
     setTypingText('');
-    onNotification("Foto Studio", "Testo inserito! Puoi trascinarlo sulla foto.");
+    onNotification("Foto Studio", "Testo inserito! Trascinalo sulla foto.");
   };
 
   // Overlay delete / undo handlers
@@ -365,7 +421,9 @@ export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) 
     setSelectedOverlayId(id);
 
     const target = e.currentTarget;
-    target.setPointerCapture(e.pointerId);
+    try {
+      target.setPointerCapture(e.pointerId);
+    } catch (err) {}
 
     const container = photoContainerRef.current;
     if (!container) return;
@@ -421,55 +479,77 @@ export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) 
     }));
   };
 
-  // CSS Filter string concatenation
+  // Standard CSS Filter string combining preset multipliers and manual adjustments
   const getFilterCSS = () => {
-    let presetString = FILTER_PRESETS[activePresetIndex].filterString;
-    let customString = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%) grayscale(${grayscale}%) sepia(${sepia}%) blur(${blur}px)`;
-    return `${presetString} ${customString}`.trim();
+    const preset = FILTER_PRESETS[activePresetIndex] || FILTER_PRESETS[0];
+    const b = (preset.brightness * (brightness / 100)).toFixed(2);
+    const c = (preset.contrast * (contrast / 100)).toFixed(2);
+    const s = (preset.saturate * (saturation / 100)).toFixed(2);
+    const g = Math.max(preset.grayscale, grayscale / 100).toFixed(2);
+    const sep = Math.max(preset.sepia, sepia / 100).toFixed(2);
+    const h = preset.hueRotate;
+
+    let filterStr = `brightness(${b}) contrast(${c}) saturate(${s})`;
+    if (parseFloat(g) > 0) filterStr += ` grayscale(${g})`;
+    if (parseFloat(sep) > 0) filterStr += ` sepia(${sep})`;
+    if (h !== 0) filterStr += ` hue-rotate(${h}deg)`;
+    if (blur > 0) filterStr += ` blur(${blur}px)`;
+
+    return filterStr;
   };
 
-  const handleExportResult = () => {
+  const generateCompositeDataUrl = async (): Promise<string> => {
     const outputCanvas = document.createElement('canvas');
     const image = imageRef.current;
-    if (!image) return;
+    if (!image) return selectedPhotoUrl;
 
-    const nativeWidth = image.naturalWidth || 800;
-    const nativeHeight = image.naturalHeight || 600;
+    const nativeWidth = image.naturalWidth || image.width || 800;
+    const nativeHeight = image.naturalHeight || image.height || 600;
 
     const isRotatedOrtho = rotation % 180 !== 0;
     outputCanvas.width = isRotatedOrtho ? nativeHeight : nativeWidth;
     outputCanvas.height = isRotatedOrtho ? nativeWidth : nativeHeight;
 
     const ctx = outputCanvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) return selectedPhotoUrl;
 
     ctx.translate(outputCanvas.width / 2, outputCanvas.height / 2);
     ctx.rotate((rotation * Math.PI) / 180);
     ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
 
-    // Apply CSS filters directly to canvas context
-    ctx.filter = getFilterCSS();
+    const filterString = getFilterCSS();
+    try {
+      ctx.filter = filterString;
+    } catch (e) {
+      ctx.filter = 'none';
+    }
 
-    ctx.drawImage(
-      image,
-      -nativeWidth / 2,
-      -nativeHeight / 2,
-      nativeWidth,
-      nativeHeight
-    );
-
-    ctx.filter = 'none';
-    
-    // Draw sketch drawings layer on top
-    const drawCanvas = canvasRef.current;
-    if (drawCanvas) {
+    try {
       ctx.drawImage(
-        drawCanvas,
+        image,
         -nativeWidth / 2,
         -nativeHeight / 2,
         nativeWidth,
         nativeHeight
       );
+    } catch (err) {
+      console.error("Canvas draw image error:", err);
+    }
+
+    ctx.filter = 'none';
+
+    // Draw sketch drawings layer on top
+    const drawCanvas = canvasRef.current;
+    if (drawCanvas) {
+      try {
+        ctx.drawImage(
+          drawCanvas,
+          -nativeWidth / 2,
+          -nativeHeight / 2,
+          nativeWidth,
+          nativeHeight
+        );
+      } catch (err) {}
     }
 
     // Draw overlays (stickers and text)
@@ -494,26 +574,57 @@ export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) 
       }
     });
 
-    const dataUrl = outputCanvas.toDataURL('image/png');
+    try {
+      const rawResult = outputCanvas.toDataURL('image/jpeg', 0.9);
+      return await compressImageDataUrl(rawResult, 1000, 0.85);
+    } catch (e) {
+      console.warn("Canvas export fallback", e);
+      return selectedPhotoUrl;
+    }
+  };
 
-    // Add processed image to gallery state
+  const handleSaveToGallery = async () => {
+    const resultDataUrl = await generateCompositeDataUrl();
     const newCompositeItem = {
       id: 'gallery_' + Date.now(),
-      name: `Modificato - ${new Date().toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'})}`,
-      url: dataUrl,
+      name: `Modificata ${new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`,
+      url: resultDataUrl,
       date: new Date().toLocaleDateString('it-IT'),
       isUserSaved: true
     };
 
     setGallery(prev => {
       const updated = [newCompositeItem, ...prev];
-      localStorage.setItem('scriba_gallery_v1', JSON.stringify(updated.filter(item => item.isUserSaved)));
+      saveGalleryToStorage(updated);
       return updated;
     });
 
+    setSelectedPhotoUrl(resultDataUrl);
+    onNotification("Foto Studio", "Foto con modifiche salvata nella galleria!");
+  };
+
+  const handleExportResult = async () => {
+    const resultDataUrl = await generateCompositeDataUrl();
+    
+    // Save to gallery state
+    const newCompositeItem = {
+      id: 'gallery_' + Date.now(),
+      name: `Modificata ${new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`,
+      url: resultDataUrl,
+      date: new Date().toLocaleDateString('it-IT'),
+      isUserSaved: true
+    };
+
+    setGallery(prev => {
+      const updated = [newCompositeItem, ...prev];
+      saveGalleryToStorage(updated);
+      return updated;
+    });
+
+    // Download file
     const link = document.createElement('a');
-    link.download = `foto_studio_edited_${Date.now()}.png`;
-    link.href = dataUrl;
+    link.download = `foto_studio_edited_${Date.now()}.jpg`;
+    link.href = resultDataUrl;
     link.click();
     onNotification("Foto Studio", "Immagine salvata ed esportata!");
   };
@@ -522,7 +633,7 @@ export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) 
     <div id="app-photo-editor" className="flex flex-col lg:flex-row h-full w-full bg-zinc-950 text-zinc-100 overflow-hidden font-sans rounded-3xl select-none">
       
       {/* Mobile view sub-tab navigation bar */}
-      <div className="flex lg:hidden bg-zinc-900 border-b border-zinc-800 p-1.5 shrink-0 z-10 w-full justify-around space-x-1.5 shrink-0">
+      <div className="flex lg:hidden bg-zinc-900 border-b border-zinc-800 p-1.5 shrink-0 z-10 w-full justify-around space-x-1.5">
         <button
           onClick={() => setMobileView('photo')}
           className={`flex-1 py-1.5 px-3 rounded-xl text-[10px] sm:text-xs font-bold flex items-center justify-center space-x-1.5 transition ${
@@ -557,12 +668,13 @@ export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) 
               <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
             </label>
 
+            {/* Photo Selector Dropdown (Includes both built-in sample photos and user imported/saved photos) */}
             <select
               onChange={(e) => setSelectedPhotoUrl(e.target.value)}
               value={selectedPhotoUrl}
-              className="bg-zinc-800 border-none text-zinc-200 text-xs py-1.5 px-2 rounded-xl cursor-pointer outline-none max-w-[140px] sm:max-w-none truncate"
+              className="bg-zinc-800 border-none text-zinc-200 text-xs py-1.5 px-2 rounded-xl cursor-pointer outline-none max-w-[150px] sm:max-w-none truncate"
             >
-              {SAMPLE_PHOTOS.map(p => (
+              {gallery.map(p => (
                 <option key={p.id} value={p.url}>{p.name}</option>
               ))}
             </select>
@@ -590,9 +702,22 @@ export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) 
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
+
+            {/* Prominent Save to Gallery Button */}
+            <button
+              onClick={handleSaveToGallery}
+              className="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold text-xs py-1.5 px-3 rounded-xl flex items-center space-x-1 transition shadow-md"
+              title="Salva la foto modificata nella Galleria"
+            >
+              <Save className="w-3.5 h-3.5" />
+              <span>Salva Modifiche</span>
+            </button>
+
+            {/* Export Download Button */}
             <button
               onClick={handleExportResult}
               className="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs py-1.5 px-3 rounded-xl flex items-center space-x-1 transition shadow-md"
+              title="Esporta e scarica file"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Esporta</span>
@@ -616,7 +741,7 @@ export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) 
             <img
               ref={imageRef}
               src={selectedPhotoUrl}
-              alt="iOS Editor Workspace"
+              alt="Workspace Foto"
               crossOrigin="anonymous"
               referrerPolicy="no-referrer"
               className="max-h-[240px] lg:max-h-[420px] object-contain transition-all rounded-lg select-none"
@@ -782,7 +907,9 @@ export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) 
                   <button 
                     onClick={() => {
                       if (confirm("Svuotare le foto caricate e salvate?")) {
-                        setGallery(SAMPLE_PHOTOS.map(p => ({ ...p, date: 'Predefinito', isUserSaved: false })));
+                        const resetList = SAMPLE_PHOTOS.map(p => ({ ...p, date: 'Predefinito', isUserSaved: false }));
+                        setGallery(resetList);
+                        setSelectedPhotoUrl(resetList[0].url);
                         localStorage.removeItem('scriba_gallery_v1');
                         onNotification("Galleria", "Galleria ripristinata");
                       }
@@ -810,29 +937,33 @@ export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) 
                             className="absolute inset-0 w-full h-full object-cover"
                           />
                         </button>
-                        <div className="p-1 px-1.5 flex flex-col justify-between text-[10px] bg-zinc-900/90">
-                          <span className="font-semibold text-zinc-300 truncate" title={item.name}>
-                            {item.name}
-                          </span>
-                          <div className="flex justify-between items-center text-[8px] text-zinc-500 mt-0.5">
-                            <span>{item.date}</span>
-                            {item.isUserSaved && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setGallery(prev => {
-                                    const next = prev.filter(p => p.id !== item.id);
-                                    localStorage.setItem('scriba_gallery_v1', JSON.stringify(next.filter(i => i.isUserSaved)));
-                                    return next;
-                                  });
-                                  onNotification("Galleria", "Immagine eliminata");
-                                }}
-                                className="text-rose-400 hover:text-rose-300 font-bold px-1"
-                              >
-                                Cancella
-                              </button>
-                            )}
+                        <div className="p-1.5 flex justify-between items-center text-[10px] bg-zinc-900/90">
+                          <div className="flex flex-col truncate">
+                            <span className="font-semibold text-zinc-300 truncate" title={item.name}>
+                              {item.name}
+                            </span>
+                            <span className="text-[8px] text-zinc-500">{item.date}</span>
                           </div>
+                          {item.isUserSaved && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setGallery(prev => {
+                                  const next = prev.filter(p => p.id !== item.id);
+                                  saveGalleryToStorage(next);
+                                  if (item.url === selectedPhotoUrl && next.length > 0) {
+                                    setSelectedPhotoUrl(next[0].url);
+                                  }
+                                  return next;
+                                });
+                                onNotification("Galleria", "Immagine eliminata");
+                              }}
+                              className="text-rose-400 hover:text-rose-300 font-bold text-[10px] p-1"
+                              title="Elimina Foto"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     );
@@ -1135,7 +1266,7 @@ export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) 
                   <div className="space-y-1.5 pt-2 border-t border-zinc-800">
                     <span className="text-[11px] font-bold text-zinc-400 block">Livelli Inseriti ({overlays.length})</span>
                     <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
-                      {overlays.map((item, idx) => (
+                      {overlays.map((item) => (
                         <div 
                           key={item.id}
                           onClick={() => setSelectedOverlayId(item.id)}
@@ -1178,6 +1309,20 @@ export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) 
           <span className="text-[9px] px-2 py-0.5 bg-zinc-900 rounded-md">Foto Studio</span>
         </div>
       </div>
+
+      {/* Floating Save Modifications Banner when filters/overlays applied */}
+      {(activePresetIndex !== 0 || brightness !== 100 || contrast !== 100 || saturation !== 100 || grayscale !== 0 || sepia !== 0 || blur !== 0 || overlays.length > 0 || drawHistory.length > 0) && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-blue-600/95 backdrop-blur-md text-white px-4 py-2 rounded-2xl shadow-2xl border border-blue-400/40 flex items-center space-x-3 animate-bounce">
+          <Sparkles className="w-4 h-4 text-amber-300 animate-spin" />
+          <span className="text-xs font-bold">Hai modifiche non salvate!</span>
+          <button
+            onClick={handleSaveToGallery}
+            className="bg-white text-blue-700 hover:bg-zinc-100 font-bold text-xs px-3 py-1 rounded-xl transition shadow-md"
+          >
+            Salva ORA in Galleria
+          </button>
+        </div>
+      )}
 
     </div>
   );
