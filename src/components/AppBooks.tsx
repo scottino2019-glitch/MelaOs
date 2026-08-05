@@ -78,18 +78,8 @@ export function PdfCanvasViewer({ pdfUrl, showToast }: PdfCanvasViewerProps) {
 
         if (!active) return;
 
-        // Bypassing worker cross-origin instantiation limitation via a local Blob
-        if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-          try {
-            const workerRes = await fetch('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js');
-            const workerCode = await workerRes.text();
-            const blob = new Blob([workerCode], { type: 'application/javascript' });
-            pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(blob);
-          } catch (workerErr) {
-            console.warn("Blob worker initialization failed, using direct CDN fallback:", workerErr);
-            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-          }
-        }
+        // Set worker source code strictly to the same-origin Express local route to prevent worker instantiation errors
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.min.js';
 
         // Decide URL: if data: or local, use as is; otherwise proxy to avoid CORS
         let targetUrl = pdfUrl;
