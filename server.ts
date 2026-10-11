@@ -86,11 +86,14 @@ async function startServer() {
   // Serve official matching pdf.worker from local node_modules
   app.get(["/pdfjs/pdf.worker.min.mjs", "/pdfjs/pdf.worker.mjs", "/pdfjs/pdf.worker.min.js", "/pdfjs/pdf.worker.js"], (_req, res) => {
     try {
-      const workerPath = path.join(process.cwd(), "node_modules", "pdfjs-dist", "build", "pdf.worker.min.mjs");
-      if (fs.existsSync(workerPath)) {
+      const legacyWorkerPath = path.join(process.cwd(), "node_modules", "pdfjs-dist", "legacy", "build", "pdf.worker.min.mjs");
+      const standardWorkerPath = path.join(process.cwd(), "node_modules", "pdfjs-dist", "build", "pdf.worker.min.mjs");
+      const targetWorker = fs.existsSync(legacyWorkerPath) ? legacyWorkerPath : standardWorkerPath;
+
+      if (fs.existsSync(targetWorker)) {
         res.setHeader("Content-Type", "application/javascript");
         res.setHeader("Access-Control-Allow-Origin", "*");
-        return res.sendFile(workerPath);
+        return res.sendFile(targetWorker);
       }
       res.status(404).send("Worker file not found");
     } catch (err: any) {
@@ -98,6 +101,16 @@ async function startServer() {
       res.status(500).send(`Error: ${err?.message}`);
     }
   });
+
+  // Serve standard fonts and cmaps for PDF.js crisp font rendering locally
+  const standardFontsDir = path.join(process.cwd(), "node_modules", "pdfjs-dist", "standard_fonts");
+  if (fs.existsSync(standardFontsDir)) {
+    app.use("/pdfjs/standard_fonts", express.static(standardFontsDir));
+  }
+  const cmapsDir = path.join(process.cwd(), "node_modules", "pdfjs-dist", "cmaps");
+  if (fs.existsSync(cmapsDir)) {
+    app.use("/pdfjs/cmaps", express.static(cmapsDir));
+  }
 
   // Siri intelligent Chat assistant endpoint
   app.post("/api/siri/chat", async (req, res) => {

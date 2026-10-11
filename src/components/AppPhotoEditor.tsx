@@ -2,8 +2,16 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Upload, Download, RotateCw, RefreshCw, Sliders, 
   Palette, Grid, Image as ImageIcon, Smile, Check, Trash, Undo,
-  Camera, Plus, Minus, Trash2, RotateCcw, Save, Sparkles
+  Camera, Plus, Minus, Trash2, RotateCcw, Save, Sparkles, Copy
 } from 'lucide-react';
+import { 
+  PhotoItem, 
+  loadGalleryFromStorage, 
+  saveGalleryToStorage, 
+  generatePhotoId, 
+  DEFAULT_GALLERY_PHOTOS, 
+  compressImageDataUrl 
+} from '../utils/photoStorage';
 
 interface AppPhotoEditorProps {
   onNotification: (title: string, msg: string) => void;
@@ -80,66 +88,90 @@ interface OverlayItem {
   color?: string; // text color
 }
 
-// Compress data URL helper so images save safely in memory and localStorage without quota errors
-const compressImageDataUrl = (dataUrl: string, maxWidth = 1000, quality = 0.85): Promise<string> => {
-  return new Promise((resolve) => {
-    if (!dataUrl.startsWith('data:image')) {
-      resolve(dataUrl);
-      return;
+// Software pixel filter fallback to guarantee 100% cross-browser preservation of filters (Safari/iPad/WebKit)
+function applySoftwareFilters(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  b: number,
+  c: number,
+  sat: number,
+  gray: number,
+  sep: number
+) {
+  if (b === 1 && c === 1 && sat === 1 && gray === 0 && sep === 0) return;
+  try {
+    const imgData = ctx.getImageData(0, 0, width, height);
+    const d = imgData.data;
+    for (let i = 0; i < d.length; i += 4) {
+      let r = d[i];
+      let g = d[i + 1];
+      let bl = d[i + 2];
+
+      if (b !== 1) {
+        r *= b;
+        g *= b;
+        bl *= b;
+      }
+      if (c !== 1) {
+        r = (r - 128) * c + 128;
+        g = (g - 128) * c + 128;
+        bl = (bl - 128) * c + 128;
+      }
+      if (sat !== 1) {
+        const lum = 0.299 * r + 0.587 * g + 0.114 * bl;
+        r = lum + (r - lum) * sat;
+        g = lum + (g - lum) * sat;
+        bl = lum + (bl - lum) * sat;
+      }
+      if (gray > 0) {
+        const avg = 0.299 * r + 0.587 * g + 0.114 * bl;
+        r = r * (1 - gray) + avg * gray;
+        g = g * (1 - gray) + avg * gray;
+        bl = bl * (1 - gray) + avg * gray;
+      }
+      if (sep > 0) {
+        const sr = 0.393 * r + 0.769 * g + 0.189 * bl;
+        const sg = 0.349 * r + 0.686 * g + 0.168 * bl;
+        const sb = 0.272 * r + 0.534 * g + 0.131 * bl;
+        r = r * (1 - sep) + sr * sep;
+        g = g * (1 - sep) + sg * sep;
+        bl = bl * (1 - sep) + sb * sep;
+      }
+
+      d[i] = Math.min(255, Math.max(0, r));
+      d[i + 1] = Math.min(255, Math.max(0, g));
+      d[i + 2] = Math.min(255, Math.max(0, bl));
     }
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      let width = img.naturalWidth || img.width || 800;
-      let height = img.naturalHeight || img.height || 600;
-      if (width > maxWidth) {
-        height = Math.round((height * maxWidth) / width);
-        width = maxWidth;
-      }
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(img, 0, 0, width, height);
-        try {
-          const compressed = canvas.toDataURL('image/jpeg', quality);
-          resolve(compressed);
-          return;
-        } catch (e) {}
-      }
-      resolve(dataUrl);
-    };
-    img.onerror = () => resolve(dataUrl);
-    img.src = dataUrl;
-  });
-};
+    ctx.putImageData(imgData, 0, 0);
+  } catch (err) {
+    // Graceful fallback if pixel data access is constrained
+  }
+}
 
 export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) {
   const [activeTab, setActiveTab] = useState<'gallery' | 'presets' | 'sliders' | 'draw' | 'stickers'>('gallery');
   
-  // Local gallery list
-  const [gallery, setGallery] = useState<{ id: string; name: string; url: string; date: string; isUserSaved?: boolean }[]>(() => {
-    const defaultList = SAMPLE_PHOTOS.map(p => ({
-      id: p.id,
-      name: p.name,
-      url: p.url,
-      date: 'Esempio',
-      isUserSaved: false
-    }));
-    const saved = localStorage.getItem('scriba_gallery_v1');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return [...parsed, ...defaultList];
-        }
-      } catch (e) {}
-    }
-    return defaultList;
+  // Local gallery list synced with CartellaImmagini via photoStorage
+  const [gallery, setGallery] = useState<PhotoItem[]>(() => loadGalleryFromStorage());
+
+  const [selectedPhotoUrl, setSelectedPhotoUrl] = useState<string>(() => {
+    const list = loadGalleryFromStorage();
+    return list.length > 0 ? list[0].url : SAMPLE_PHOTOS[0].url;
   });
 
-  const [selectedPhotoUrl, setSelectedPhotoUrl] = useState<string>(gallery[0]?.url || SAMPLE_PHOTOS[0].url);
+  // Sync across tabs or CartellaImmagini changes
+  useEffect(() => {
+    const handleSync = () => {
+      const freshList = loadGalleryFromStorage();
+      setGallery(freshList);
+      if (!freshList.some(p => p.url === selectedPhotoUrl) && freshList.length > 0) {
+        setSelectedPhotoUrl(freshList[0].url);
+      }
+    };
+    window.addEventListener('scriba_gallery_changed', handleSync);
+    return () => window.removeEventListener('scriba_gallery_changed', handleSync);
+  }, [selectedPhotoUrl]);
 
   // Basic filter slider variables
   const [brightness, setBrightness] = useState<number>(100);
@@ -208,15 +240,6 @@ export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) 
     setActivePresetIndex(0);
   };
 
-  const saveGalleryToStorage = (items: { id: string; name: string; url: string; date: string; isUserSaved?: boolean }[]) => {
-    try {
-      const userItems = items.filter(i => i.isUserSaved);
-      localStorage.setItem('scriba_gallery_v1', JSON.stringify(userItems));
-    } catch (e) {
-      console.warn("Storage quota exceeded", e);
-    }
-  };
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -225,28 +248,26 @@ export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) 
         if (event.target?.result) {
           const rawDataUrl = event.target.result as string;
           // Compress dataUrl so gallery and localStorage operate smoothly
-          const compressedUrl = await compressImageDataUrl(rawDataUrl, 1000, 0.85);
+          const compressedUrl = await compressImageDataUrl(rawDataUrl, 1200, 0.82);
 
           setSelectedPhotoUrl(compressedUrl);
 
-          const newUploadedItem = {
-            id: 'gallery_' + Date.now(),
+          const newUploadedItem: PhotoItem = {
+            id: generatePhotoId(),
             name: file.name.substring(0, 18) || `Foto Caricata`,
             url: compressedUrl,
             date: new Date().toLocaleDateString('it-IT', { hour: '2-digit', minute: '2-digit' }),
             isUserSaved: true
           };
 
-          setGallery(prev => {
-            const updated = [newUploadedItem, ...prev];
-            saveGalleryToStorage(updated);
-            return updated;
-          });
+          const updated = saveGalleryToStorage([newUploadedItem, ...gallery]);
+          setGallery(updated);
 
           onNotification("Foto Studio", "Foto importata e aggiunta alla galleria!");
         }
       };
       reader.readAsDataURL(file);
+      e.target.value = '';
     }
   };
 
@@ -518,10 +539,15 @@ export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) 
     ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
 
     const filterString = getFilterCSS();
+    let nativeFilterApplied = false;
     try {
-      ctx.filter = filterString;
+      if (filterString && filterString !== 'none') {
+        ctx.filter = filterString;
+        nativeFilterApplied = ctx.filter !== 'none' && ctx.filter !== '';
+      }
     } catch (e) {
       ctx.filter = 'none';
+      nativeFilterApplied = false;
     }
 
     try {
@@ -537,6 +563,20 @@ export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) 
     }
 
     ctx.filter = 'none';
+
+    // Software filter fallback if canvas filter is not applied (ensures filters bake in 100% on Safari/iPadOS)
+    if (!nativeFilterApplied && (brightness !== 100 || contrast !== 100 || saturation !== 100 || grayscale !== 0 || sepia !== 0)) {
+      applySoftwareFilters(
+        ctx,
+        outputCanvas.width,
+        outputCanvas.height,
+        brightness / 100,
+        contrast / 100,
+        saturation / 100,
+        grayscale / 100,
+        sepia / 100
+      );
+    }
 
     // Draw sketch drawings layer on top
     const drawCanvas = canvasRef.current;
@@ -558,12 +598,12 @@ export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) 
       const drawY = (item.y / 100) * nativeHeight - nativeHeight / 2;
 
       if (item.type === 'sticker') {
-        ctx.font = `${item.size * (nativeWidth / 400)}px sans-serif`;
+        ctx.font = `${Math.round(item.size * (nativeWidth / 400))}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(item.content, drawX, drawY);
       } else {
-        ctx.font = `bold ${item.size * (nativeWidth / 400)}px sans-serif`;
+        ctx.font = `bold ${Math.round(item.size * (nativeWidth / 400))}px sans-serif`;
         ctx.fillStyle = item.color || '#FFFFFF';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -575,58 +615,80 @@ export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) 
     });
 
     try {
-      const rawResult = outputCanvas.toDataURL('image/jpeg', 0.9);
-      return await compressImageDataUrl(rawResult, 1000, 0.85);
+      const rawResult = outputCanvas.toDataURL('image/jpeg', 0.88);
+      return await compressImageDataUrl(rawResult, 1200, 0.82);
     } catch (e) {
       console.warn("Canvas export fallback", e);
       return selectedPhotoUrl;
     }
   };
 
-  const handleSaveToGallery = async () => {
+  const handleSaveToGallery = async (saveAsNew = false) => {
     const resultDataUrl = await generateCompositeDataUrl();
-    const newCompositeItem = {
-      id: 'gallery_' + Date.now(),
-      name: `Modificata ${new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`,
-      url: resultDataUrl,
-      date: new Date().toLocaleDateString('it-IT'),
-      isUserSaved: true
-    };
+    
+    // Check if the current photo is an item in the gallery
+    const existingIndex = gallery.findIndex(p => p.url === selectedPhotoUrl);
 
-    setGallery(prev => {
-      const updated = [newCompositeItem, ...prev];
-      saveGalleryToStorage(updated);
-      return updated;
-    });
+    if (!saveAsNew && existingIndex !== -1) {
+      // Overwrite/update the existing item in the gallery so modifications are directly applied!
+      const current = gallery[existingIndex];
+      const updatedItem: PhotoItem = {
+        ...current,
+        url: resultDataUrl,
+        name: current.name.endsWith('(Modificata)') ? current.name : `${current.name} (Modificata)`,
+        date: new Date().toLocaleDateString('it-IT', { hour: '2-digit', minute: '2-digit' }),
+        isUserSaved: true
+      };
+      const updatedGallery = [...gallery];
+      updatedGallery[existingIndex] = updatedItem;
+      const clean = saveGalleryToStorage(updatedGallery);
+      setGallery(clean);
+      setSelectedPhotoUrl(resultDataUrl);
+      resetSliders();
+      clearCanvasDrawing();
+      setOverlays([]);
+      onNotification("Foto Studio", "Foto aggiornata e salvata con tutte le modifiche!");
+    } else {
+      // Add as a new entry
+      const newCompositeItem: PhotoItem = {
+        id: generatePhotoId(),
+        name: `Foto Modificata ${new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`,
+        url: resultDataUrl,
+        date: new Date().toLocaleDateString('it-IT'),
+        isUserSaved: true
+      };
 
-    setSelectedPhotoUrl(resultDataUrl);
-    onNotification("Foto Studio", "Foto con modifiche salvata nella galleria!");
+      const clean = saveGalleryToStorage([newCompositeItem, ...gallery]);
+      setGallery(clean);
+      setSelectedPhotoUrl(resultDataUrl);
+      resetSliders();
+      clearCanvasDrawing();
+      setOverlays([]);
+      onNotification("Foto Studio", "Nuova copia modificata salvata nella galleria!");
+    }
   };
 
   const handleExportResult = async () => {
     const resultDataUrl = await generateCompositeDataUrl();
     
-    // Save to gallery state
-    const newCompositeItem = {
-      id: 'gallery_' + Date.now(),
-      name: `Modificata ${new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`,
+    // Save to gallery
+    const newCompositeItem: PhotoItem = {
+      id: generatePhotoId(),
+      name: `Esportata ${new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`,
       url: resultDataUrl,
       date: new Date().toLocaleDateString('it-IT'),
       isUserSaved: true
     };
 
-    setGallery(prev => {
-      const updated = [newCompositeItem, ...prev];
-      saveGalleryToStorage(updated);
-      return updated;
-    });
+    const clean = saveGalleryToStorage([newCompositeItem, ...gallery]);
+    setGallery(clean);
 
     // Download file
     const link = document.createElement('a');
     link.download = `foto_studio_edited_${Date.now()}.jpg`;
     link.href = resultDataUrl;
     link.click();
-    onNotification("Foto Studio", "Immagine salvata ed esportata!");
+    onNotification("Foto Studio", "Immagine esportata e salvata nella galleria!");
   };
 
   return (
@@ -674,8 +736,8 @@ export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) 
               value={selectedPhotoUrl}
               className="bg-zinc-800 border-none text-zinc-200 text-xs py-1.5 px-2 rounded-xl cursor-pointer outline-none max-w-[150px] sm:max-w-none truncate"
             >
-              {gallery.map(p => (
-                <option key={p.id} value={p.url}>{p.name}</option>
+              {gallery.map((p, idx) => (
+                <option key={`${p.id || 'editor_opt'}_${idx}`} value={p.url}>{p.name}</option>
               ))}
             </select>
           </div>
@@ -705,12 +767,22 @@ export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) 
 
             {/* Prominent Save to Gallery Button */}
             <button
-              onClick={handleSaveToGallery}
+              onClick={() => handleSaveToGallery(false)}
               className="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold text-xs py-1.5 px-3 rounded-xl flex items-center space-x-1 transition shadow-md"
-              title="Salva la foto modificata nella Galleria"
+              title="Salva modifiche sulla foto attuale in Galleria"
             >
               <Save className="w-3.5 h-3.5" />
               <span>Salva Modifiche</span>
+            </button>
+
+            {/* Save as New Copy */}
+            <button
+              onClick={() => handleSaveToGallery(true)}
+              className="bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-zinc-200 font-semibold text-xs py-1.5 px-2.5 rounded-xl flex items-center space-x-1 transition shadow-xs"
+              title="Salva come nuova foto copia"
+            >
+              <Copy className="w-3.5 h-3.5 text-blue-400" />
+              <span className="hidden sm:inline">Copia</span>
             </button>
 
             {/* Export Download Button */}
@@ -764,11 +836,12 @@ export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) 
             />
 
             {/* Render placed stickers & text overlays */}
-            {overlays.map(item => {
+            {overlays.map((item, idx) => {
               const isSelected = selectedOverlayId === item.id;
+              const safeKey = `${item.id || 'overlay_item'}_${idx}`;
               return (
                 <div
-                  key={item.id}
+                  key={safeKey}
                   style={{ 
                     left: `${item.x}%`, 
                     top: `${item.y}%`
@@ -903,28 +976,41 @@ export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) 
             {activeTab === 'gallery' && (
               <div className="space-y-3 pt-1">
                 <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
-                  <span className="text-xs font-bold text-zinc-400">Galleria Immagini</span>
-                  <button 
-                    onClick={() => {
-                      if (confirm("Svuotare le foto caricate e salvate?")) {
-                        const resetList = SAMPLE_PHOTOS.map(p => ({ ...p, date: 'Predefinito', isUserSaved: false }));
+                  <span className="text-xs font-bold text-zinc-400">Galleria ({gallery.length})</span>
+                  <div className="flex items-center gap-2">
+                    {gallery.length > 0 && (
+                      <button 
+                        onClick={() => {
+                          saveGalleryToStorage([]);
+                          setGallery([]);
+                          setSelectedPhotoUrl('');
+                          onNotification("Galleria", "Galleria svuotata");
+                        }} 
+                        className="text-[10px] text-rose-400 hover:text-rose-300 font-semibold"
+                      >
+                        Svuota
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => {
+                        const resetList = saveGalleryToStorage(DEFAULT_GALLERY_PHOTOS);
                         setGallery(resetList);
-                        setSelectedPhotoUrl(resetList[0].url);
-                        localStorage.removeItem('scriba_gallery_v1');
-                        onNotification("Galleria", "Galleria ripristinata");
-                      }
-                    }} 
-                    className="text-[10px] text-rose-400 hover:underline"
-                  >
-                    Reset
-                  </button>
+                        setSelectedPhotoUrl(resetList[0]?.url || '');
+                        onNotification("Galleria", "Foto di esempio ripristinate");
+                      }} 
+                      className="text-[10px] text-amber-400 hover:text-amber-300 font-semibold"
+                    >
+                      Ripristina
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-2.5 max-h-[360px] overflow-y-auto pr-1">
-                  {gallery.map((item) => {
+                  {gallery.map((item, idx) => {
                     const isSelected = item.url === selectedPhotoUrl;
+                    const safeKey = `${item.id || 'editor_photo'}_${idx}`;
                     return (
-                      <div key={item.id} className="relative group rounded-xl overflow-hidden bg-zinc-900 border border-white/5 flex flex-col justify-between">
+                      <div key={safeKey} className="relative group rounded-xl overflow-hidden bg-zinc-900 border border-white/5 flex flex-col justify-between">
                         <button
                           onClick={() => setSelectedPhotoUrl(item.url)}
                           className={`relative aspect-video w-full overflow-hidden transition ${
@@ -938,32 +1024,32 @@ export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) 
                           />
                         </button>
                         <div className="p-1.5 flex justify-between items-center text-[10px] bg-zinc-900/90">
-                          <div className="flex flex-col truncate">
+                          <div className="flex flex-col truncate pr-1">
                             <span className="font-semibold text-zinc-300 truncate" title={item.name}>
                               {item.name}
                             </span>
                             <span className="text-[8px] text-zinc-500">{item.date}</span>
                           </div>
-                          {item.isUserSaved && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setGallery(prev => {
-                                  const next = prev.filter(p => p.id !== item.id);
-                                  saveGalleryToStorage(next);
-                                  if (item.url === selectedPhotoUrl && next.length > 0) {
-                                    setSelectedPhotoUrl(next[0].url);
-                                  }
-                                  return next;
-                                });
-                                onNotification("Galleria", "Immagine eliminata");
-                              }}
-                              className="text-rose-400 hover:text-rose-300 font-bold text-[10px] p-1"
-                              title="Elimina Foto"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setGallery(prev => {
+                                const next = prev.filter(p => p.id !== item.id);
+                                saveGalleryToStorage(next);
+                                if (item.url === selectedPhotoUrl && next.length > 0) {
+                                  setSelectedPhotoUrl(next[0].url);
+                                } else if (next.length === 0) {
+                                  setSelectedPhotoUrl('');
+                                }
+                                return next;
+                              });
+                              onNotification("Galleria", `"${item.name}" eliminata`);
+                            }}
+                            className="text-rose-400 hover:text-rose-300 active:scale-90 font-bold text-[10px] p-1 shrink-0"
+                            title="Elimina Foto"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
                     );
@@ -1266,9 +1352,9 @@ export default function AppPhotoEditor({ onNotification }: AppPhotoEditorProps) 
                   <div className="space-y-1.5 pt-2 border-t border-zinc-800">
                     <span className="text-[11px] font-bold text-zinc-400 block">Livelli Inseriti ({overlays.length})</span>
                     <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
-                      {overlays.map((item) => (
+                      {overlays.map((item, idx) => (
                         <div 
-                          key={item.id}
+                          key={`${item.id || 'overlay_layer'}_${idx}`}
                           onClick={() => setSelectedOverlayId(item.id)}
                           className={`flex items-center justify-between p-2 rounded-xl border text-xs cursor-pointer transition ${
                             selectedOverlayId === item.id ? 'bg-blue-600/20 border-blue-500 text-white' : 'bg-zinc-900/60 border-zinc-800 text-zinc-300 hover:bg-zinc-800'

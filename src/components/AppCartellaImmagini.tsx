@@ -1,72 +1,39 @@
 import React, { useState, useEffect } from 'react';
-import { FolderOpen, Image, Trash2, Download, Wallpaper, Check, Upload, HelpCircle } from 'lucide-react';
+import { FolderOpen, Image, Trash2, Download, Wallpaper, Check, Upload, HelpCircle, Sparkles } from 'lucide-react';
+import { 
+  PhotoItem, 
+  loadGalleryFromStorage, 
+  saveGalleryToStorage, 
+  generatePhotoId, 
+  DEFAULT_GALLERY_PHOTOS, 
+  compressImageDataUrl 
+} from '../utils/photoStorage';
 
 interface CartellaImmaginiProps {
   onNotification: (title: string, desc: string) => void;
   onSetWallpaper?: (imageUrl: string) => void;
 }
 
-interface PhotoItem {
-  id: string;
-  name: string;
-  url: string;
-  date: string;
-  isUserSaved?: boolean;
-}
-
-const SAMPLE_DEFAULT_PHOTOS = [
-  {
-    id: 'sample1',
-    name: 'Tramonto Appennino',
-    url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80',
-    date: 'Predefinito',
-    isUserSaved: false
-  },
-  {
-    id: 'sample2',
-    name: 'Dolomiti d\'Autunno',
-    url: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=600&q=80',
-    date: 'Predefinito',
-    isUserSaved: false
-  },
-  {
-    id: 'sample3',
-    name: 'Spiaggia d\'Amalfi',
-    url: 'https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=600&q=80',
-    date: 'Predefinito',
-    isUserSaved: false
-  }
-];
-
 export default function AppCartellaImmagini({ onNotification, onSetWallpaper }: CartellaImmaginiProps) {
-  const [gallery, setGallery] = useState<PhotoItem[]>([]);
-  const [selectedPhoto, setSelectedPhoto] = useState<PhotoItem | null>(null);
+  const [gallery, setGallery] = useState<PhotoItem[]>(() => loadGalleryFromStorage());
 
-  // Load from local storage + append sample defaults
+  const [selectedPhoto, setSelectedPhoto] = useState<PhotoItem | null>(() => {
+    const list = loadGalleryFromStorage();
+    return list.length > 0 ? list[0] : null;
+  });
+
+  // Sync across tabs or between PhotoEditor & CartellaImmagini
   useEffect(() => {
-    const saved = localStorage.getItem('scriba_gallery_v1');
-    let loaded: PhotoItem[] = [];
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          loaded = parsed;
-        }
-      } catch (e) {}
-    }
-    // Combine saved uploaded/edited photos with defaults
-    const combined = [...loaded, ...SAMPLE_DEFAULT_PHOTOS];
-    setGallery(combined);
-    if (combined.length > 0) {
-      setSelectedPhoto(combined[0]);
-    }
-  }, []);
-
-  const saveGalleryToStorage = (updatedGallery: PhotoItem[]) => {
-    // Only save items marked as user saved (uploaded or edited, so we don't duplicate defaults)
-    const onlyUser = updatedGallery.filter(item => item.isUserSaved);
-    localStorage.setItem('scriba_gallery_v1', JSON.stringify(onlyUser));
-  };
+    const handleSync = () => {
+      const freshList = loadGalleryFromStorage();
+      setGallery(freshList);
+      if (selectedPhoto && !freshList.some(p => p.id === selectedPhoto.id)) {
+        setSelectedPhoto(freshList[0] || null);
+      }
+    };
+    window.addEventListener('scriba_gallery_changed', handleSync);
+    return () => window.removeEventListener('scriba_gallery_changed', handleSync);
+  }, [selectedPhoto]);
 
   // Upload custom new image
   const handleUploadClick = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,38 +41,54 @@ export default function AppCartellaImmagini({ onNotification, onSetWallpaper }: 
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       if (event.target?.result) {
-        const dataUrl = event.target.result as string;
+        const rawDataUrl = event.target.result as string;
+        const compressedUrl = await compressImageDataUrl(rawDataUrl, 1200, 0.82);
+
         const newItem: PhotoItem = {
-          id: 'gallery_' + Date.now(),
+          id: generatePhotoId(),
           name: file.name.substring(0, 20) || 'Caricata',
-          url: dataUrl,
+          url: compressedUrl,
           date: new Date().toLocaleDateString('it-IT', { hour: '2-digit', minute: '2-digit' }),
           isUserSaved: true
         };
 
-        const updated = [newItem, ...gallery];
+        const updated = saveGalleryToStorage([newItem, ...gallery]);
         setGallery(updated);
-        saveGalleryToStorage(updated);
         setSelectedPhoto(newItem);
-        onNotification("Cartella Immagini", "Immagine caricata correttamente nella cartella!");
+        onNotification("Cartella Immagini", "Immagine caricata e salvata nella galleria!");
       }
     };
     reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
-  // Delete picture
-  const handleDelete = (id: string, name: string) => {
-    if (confirm(`Rimuovere "${name}" dalla cartella?`)) {
-      const updated = gallery.filter(item => item.id !== id);
-      setGallery(updated);
-      saveGalleryToStorage(updated);
-      onNotification("Cartella Immagini", "Immagine rimossa.");
-      if (selectedPhoto?.id === id) {
-        setSelectedPhoto(updated[0] || null);
-      }
+  // Delete picture (ANY picture, including sample/default)
+  const handleDelete = (id: string, name: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const updated = saveGalleryToStorage(gallery.filter(item => item.id !== id));
+    setGallery(updated);
+    onNotification("Cartella Immagini", `"${name}" rimossa dalla cartella.`);
+    if (selectedPhoto?.id === id) {
+      setSelectedPhoto(updated[0] || null);
     }
+  };
+
+  // Clear entire gallery
+  const handleClearAll = () => {
+    saveGalleryToStorage([]);
+    setGallery([]);
+    setSelectedPhoto(null);
+    onNotification("Cartella Immagini", "Cartella svuotata completamente.");
+  };
+
+  // Restore sample pictures
+  const handleRestoreDefaults = () => {
+    const restored = saveGalleryToStorage(DEFAULT_GALLERY_PHOTOS);
+    setGallery(restored);
+    setSelectedPhoto(restored[0] || null);
+    onNotification("Cartella Immagini", "Foto predefinite ripristinate.");
   };
 
   // Set selected as wallpaper of iPad
@@ -126,6 +109,24 @@ export default function AppCartellaImmagini({ onNotification, onSetWallpaper }: 
           <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-300">Cartella Immagini</h2>
         </div>
         <div className="flex items-center space-x-2">
+          {gallery.length > 0 ? (
+            <button
+              onClick={handleClearAll}
+              className="bg-zinc-800/80 hover:bg-red-900/40 text-zinc-400 hover:text-red-300 text-xs px-2.5 py-1.5 rounded-xl font-bold flex items-center space-x-1 transition active:scale-95"
+              title="Elimina tutte le foto"
+            >
+              <Trash2 className="w-3 h-3 text-red-400" />
+              <span>Svuota</span>
+            </button>
+          ) : (
+            <button
+              onClick={handleRestoreDefaults}
+              className="bg-zinc-800 hover:bg-zinc-700 text-amber-300 text-xs px-2.5 py-1.5 rounded-xl font-bold flex items-center space-x-1 transition active:scale-95"
+            >
+              <span>+ Esempi</span>
+            </button>
+          )}
+
           <label className="bg-blue-600 hover:bg-blue-500 text-xs px-3 py-1.5 rounded-xl font-bold flex items-center space-x-1 hover:scale-103 active:scale-97 cursor-pointer transition">
             <Upload className="w-3.5 h-3.5" />
             <span>Nuovo File</span>
@@ -150,16 +151,23 @@ export default function AppCartellaImmagini({ onNotification, onSetWallpaper }: 
               <Image className="w-8 h-8 text-zinc-650 mb-2" />
               <p className="text-xs text-zinc-500 font-bold">Nessun file presente</p>
               <p id="label-upload-desc" className="text-[9px] text-zinc-650 mt-1">Trascina o carica immagini per popolare la cartella.</p>
+              <button
+                onClick={handleRestoreDefaults}
+                className="mt-3 text-[10px] text-amber-400 font-bold underline hover:text-amber-300"
+              >
+                Ripristina immagini di esempio
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pb-4">
-              {gallery.map((item) => {
+              {gallery.map((item, idx) => {
                 const isSelected = selectedPhoto?.id === item.id;
+                const safeKey = `${item.id || 'cartella_img'}_${idx}`;
                 return (
                   <div 
-                    key={item.id}
+                    key={safeKey}
                     onClick={() => setSelectedPhoto(item)}
-                    className={`relative rounded-xl overflow-hidden aspect-video bg-zinc-900 border transition cursor-pointer ${
+                    className={`relative rounded-xl overflow-hidden aspect-video bg-zinc-900 border transition cursor-pointer group ${
                       isSelected ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-white/5 hover:border-zinc-700'
                     }`}
                   >
@@ -169,8 +177,19 @@ export default function AppCartellaImmagini({ onNotification, onSetWallpaper }: 
                       className="w-full h-full object-cover select-none" 
                       draggable={false}
                     />
+
+                    {/* Touch & click friendly trash button */}
+                    <button
+                      type="button"
+                      onClick={(e) => handleDelete(item.id, item.name, e)}
+                      className="absolute top-1.5 right-1.5 bg-black/75 hover:bg-red-600 active:scale-90 text-white p-1 rounded-full z-10 transition shadow-sm"
+                      title="Elimina foto"
+                    >
+                      <Trash2 className="w-3 h-3 text-red-400 group-hover:text-white" />
+                    </button>
+
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/40 to-transparent p-1.5 flex flex-col justify-end">
-                      <span className="text-[9px] font-semibold text-zinc-200 truncate">{item.name}</span>
+                      <span className="text-[9px] font-semibold text-zinc-200 truncate pr-6">{item.name}</span>
                       <span className="text-[7px] text-zinc-400 font-medium">{item.date}</span>
                     </div>
                   </div>
@@ -219,15 +238,13 @@ export default function AppCartellaImmagini({ onNotification, onSetWallpaper }: 
               </a>
             </div>
 
-            {selectedPhoto.isUserSaved && (
-              <button
-                onClick={() => handleDelete(selectedPhoto.id, selectedPhoto.name)}
-                className="mt-2 bg-red-950/30 hover:bg-red-900/40 text-red-400 hover:text-red-300 text-[10px] py-1.5 rounded-xl font-bold flex items-center justify-center space-x-1 border border-red-500/15 transition-all"
-              >
-                <Trash2 className="w-3 h-3" />
-                <span>Rimuovi File</span>
-              </button>
-            )}
+            <button
+              onClick={(e) => handleDelete(selectedPhoto.id, selectedPhoto.name, e)}
+              className="mt-2 bg-red-950/40 hover:bg-red-900/60 text-red-400 hover:text-red-200 text-[10px] py-1.5 rounded-xl font-bold flex items-center justify-center space-x-1 border border-red-500/20 transition-all active:scale-95 cursor-pointer"
+            >
+              <Trash2 className="w-3 h-3" />
+              <span>Rimuovi File</span>
+            </button>
           </div>
         )}
 
