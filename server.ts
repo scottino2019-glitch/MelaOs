@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
@@ -11,6 +12,12 @@ async function startServer() {
   const PORT = 3000;
 
   app.use(express.json());
+
+  // Serve static assets from /public directly
+  const publicDirPath = path.join(process.cwd(), "public");
+  if (fs.existsSync(publicDirPath)) {
+    app.use(express.static(publicDirPath));
+  }
 
   // Safe server-side Gemini client setup
   const apiKey = process.env.GEMINI_API_KEY;
@@ -25,6 +32,30 @@ async function startServer() {
       }
     });
   }
+
+  // List all available PDFs in public/ folder
+  app.get("/api/public-pdfs", (_req, res) => {
+    try {
+      if (!fs.existsSync(publicDirPath)) {
+        return res.json([]);
+      }
+      const files = fs.readdirSync(publicDirPath);
+      const pdfs = files
+        .filter(f => f.toLowerCase().endsWith(".pdf"))
+        .map(f => {
+          const stats = fs.statSync(path.join(publicDirPath, f));
+          return {
+            filename: f,
+            url: "/" + f,
+            size: stats.size,
+          };
+        });
+      res.json(pdfs);
+    } catch (e: any) {
+      console.error("Error reading public PDFs:", e);
+      res.status(500).json({ error: e.message });
+    }
+  });
 
   // PDF Proxy to bypass CORS on remote PDFs and allow reliable canvas rendering
   app.get("/api/proxy-pdf", async (req, res) => {
@@ -52,40 +83,18 @@ async function startServer() {
     }
   });
 
-  // Local physical cache cache states for same-origin PDF.js scripts
-  let pdfMinCache: string | null = null;
-  let pdfWorkerCache: string | null = null;
-
-  app.get("/pdfjs/pdf.min.js", async (req, res) => {
+  // Serve official matching pdf.worker from local node_modules
+  app.get(["/pdfjs/pdf.worker.min.mjs", "/pdfjs/pdf.worker.mjs", "/pdfjs/pdf.worker.min.js", "/pdfjs/pdf.worker.js"], (_req, res) => {
     try {
-      if (!pdfMinCache) {
-        console.log("Caching pdf.min.js to local same-origin Express route...");
-        const response = await fetch("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js");
-        if (!response.ok) throw new Error(`CDN status ${response.status}`);
-        pdfMinCache = await response.text();
+      const workerPath = path.join(process.cwd(), "node_modules", "pdfjs-dist", "build", "pdf.worker.min.mjs");
+      if (fs.existsSync(workerPath)) {
+        res.setHeader("Content-Type", "application/javascript");
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        return res.sendFile(workerPath);
       }
-      res.setHeader("Content-Type", "application/javascript");
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      res.send(pdfMinCache);
+      res.status(404).send("Worker file not found");
     } catch (err: any) {
-      console.error("Express local pdf.min.js route error:", err);
-      res.status(500).send(`Error: ${err?.message}`);
-    }
-  });
-
-  app.get("/pdfjs/pdf.worker.min.js", async (req, res) => {
-    try {
-      if (!pdfWorkerCache) {
-        console.log("Caching pdf.worker.min.js to local same-origin Express route...");
-        const response = await fetch("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js");
-        if (!response.ok) throw new Error(`CDN status ${response.status}`);
-        pdfWorkerCache = await response.text();
-      }
-      res.setHeader("Content-Type", "application/javascript");
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      res.send(pdfWorkerCache);
-    } catch (err: any) {
-      console.error("Express local pdf.worker.min.js route error:", err);
+      console.error("Express local pdf worker route error:", err);
       res.status(500).send(`Error: ${err?.message}`);
     }
   });
